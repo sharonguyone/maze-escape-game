@@ -14,7 +14,7 @@ export class GameEngine {
   private animationId: number | null = null;
   private playerRole: PlayerRole;
   private positionSyncInterval: number | null = null;
-  private storageEventHandler: ((e: StorageEvent) => void) | null = null;
+  private storageEventHandler: ((e: Event) => void) | null = null;
   public onWin: (() => void) | null = null;
 
   constructor(
@@ -282,6 +282,8 @@ export class GameEngine {
       // Update shared position for other players to see
       const { updatePlayerPosition } = useGame.getState();
       updatePlayerPosition(newPos.x, newPos.y);
+      
+      console.log(`Navigator moved to: ${newPos.x}, ${newPos.y}`);
 
       // Check win condition
       if (newPos.x === this.endPos.x && newPos.y === this.endPos.y) {
@@ -327,28 +329,12 @@ export class GameEngine {
   private startPositionSync() {
     // Only Guide needs to sync position updates
     if (this.playerRole === 'guide') {
-      // Listen for localStorage changes for real-time updates
-      this.storageEventHandler = (e: StorageEvent) => {
-        const { roomCode } = useGame.getState();
-        if (roomCode && e.key === `maze_position_${roomCode}` && e.newValue) {
-          try {
-            const position = JSON.parse(e.newValue);
-            const currentPos = this.player.getPosition();
-            if (currentPos.x !== position.x || currentPos.y !== position.y) {
-              this.player.setPosition(position.x, position.y);
-            }
-          } catch (error) {
-            console.log('Error parsing position update:', error);
-          }
-        }
-      };
-      
-      window.addEventListener('storage', this.storageEventHandler);
-      
-      // Also poll as backup (for same-tab testing)
+      // Poll for position updates from server
       this.positionSyncInterval = window.setInterval(() => {
-        this.syncPlayerPositionFromShared();
-      }, 200); // Poll every 200ms as backup
+        this.syncPlayerPositionFromServer();
+      }, 200); // Poll every 200ms for smooth movement
+      
+      console.log('Guide: Started HTTP position sync');
     }
   }
 
@@ -357,9 +343,24 @@ export class GameEngine {
       clearInterval(this.positionSyncInterval);
       this.positionSyncInterval = null;
     }
-    if (this.storageEventHandler) {
-      window.removeEventListener('storage', this.storageEventHandler);
-      this.storageEventHandler = null;
+  }
+
+  private async syncPlayerPositionFromServer() {
+    const { roomCode } = useGame.getState();
+    if (!roomCode) return;
+
+    try {
+      const response = await fetch(`/api/position/${roomCode}`);
+      if (response.ok) {
+        const data = await response.json();
+        const currentPos = this.player.getPosition();
+        if (currentPos.x !== data.x || currentPos.y !== data.y) {
+          this.player.setPosition(data.x, data.y);
+          console.log(`Guide synced to: ${data.x}, ${data.y}`);
+        }
+      }
+    } catch (error) {
+      // Silently ignore errors - just try again on next poll
     }
   }
 
@@ -369,6 +370,7 @@ export class GameEngine {
       const currentPos = this.player.getPosition();
       if (currentPos.x !== sharedPlayerPosition.x || currentPos.y !== sharedPlayerPosition.y) {
         this.player.setPosition(sharedPlayerPosition.x, sharedPlayerPosition.y);
+        console.log(`Guide synced to: ${sharedPlayerPosition.x}, ${sharedPlayerPosition.y}`);
       }
     }
   }

@@ -36,24 +36,30 @@ const getRoomCodeFromURL = (): string | null => {
   return params.get('room');
 };
 
-// Shared position storage using localStorage for real-time sync
-const getSharedPositionKey = (roomCode: string) => `maze_position_${roomCode}`;
-
-const saveSharedPosition = (roomCode: string, x: number, y: number) => {
-  const key = getSharedPositionKey(roomCode);
-  localStorage.setItem(key, JSON.stringify({ x, y, timestamp: Date.now() }));
+// Cross-device position sharing using HTTP API
+const saveSharedPosition = async (roomCode: string, x: number, y: number) => {
+  try {
+    await fetch(`/api/position/${roomCode}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ x, y }),
+    });
+  } catch (error) {
+    console.error('Failed to save position:', error);
+  }
 };
 
-const loadSharedPosition = (roomCode: string): { x: number; y: number } | null => {
-  const key = getSharedPositionKey(roomCode);
-  const stored = localStorage.getItem(key);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      return { x: parsed.x, y: parsed.y };
-    } catch {
-      return null;
+const loadSharedPosition = async (roomCode: string): Promise<{ x: number; y: number } | null> => {
+  try {
+    const response = await fetch(`/api/position/${roomCode}`);
+    if (response.ok) {
+      const data = await response.json();
+      return { x: data.x, y: data.y };
     }
+  } catch (error) {
+    console.error('Failed to load position:', error);
   }
   return null;
 };
@@ -149,16 +155,16 @@ export const useGame = create<GameState>()(
       }
     },
 
-    initializePlayerPosition: (x: number, y: number) => {
+    initializePlayerPosition: async (x: number, y: number) => {
       const state = get();
       if (state.roomCode) {
         // Check if there's already a shared position
-        const existing = loadSharedPosition(state.roomCode);
+        const existing = await loadSharedPosition(state.roomCode);
         if (existing) {
           set(() => ({ sharedPlayerPosition: existing }));
         } else {
           // Initialize with starting position
-          saveSharedPosition(state.roomCode, x, y);
+          await saveSharedPosition(state.roomCode, x, y);
           set(() => ({ sharedPlayerPosition: { x, y } }));
         }
       }
