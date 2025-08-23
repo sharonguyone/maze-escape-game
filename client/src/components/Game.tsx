@@ -7,13 +7,13 @@ import TouchControls from "./TouchControls";
 import GameUI from "./GameUI";
 
 export default function Game() {
-  const { phase, start, restart } = useGame();
+  const { phase, playerRole, start, restart, setRole, selectRole } = useGame();
   const { generateMaze, currentLevel } = useMaze();
   const { backgroundMusic, isMuted } = useAudio();
 
-  // Initialize the first maze when game starts
+  // Initialize the first maze when role is selected
   useEffect(() => {
-    if (phase === "ready") {
+    if (phase === "role-select") {
       generateMaze(15, 15); // Start with a 15x15 maze
     }
   }, [phase, generateMaze]);
@@ -30,7 +30,7 @@ export default function Game() {
   }, [backgroundMusic, isMuted, phase]);
 
   const handleStartGame = () => {
-    start();
+    selectRole();
   };
 
   const handleRestartGame = () => {
@@ -39,7 +39,10 @@ export default function Game() {
   };
 
   const handleNextLevel = () => {
-    const newSize = Math.min(25, 15 + currentLevel * 2); // Increase maze size each level
+    const { nextLevel } = useMaze.getState();
+    nextLevel(); // Increment the level first
+    const newLevel = useMaze.getState().currentLevel;
+    const newSize = Math.min(25, 15 + newLevel * 2); // Increase maze size each level
     generateMaze(newSize, newSize);
     start();
   };
@@ -48,13 +51,21 @@ export default function Game() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 text-blue-400">Maze Navigator</h1>
+          <h1 className="text-4xl font-bold mb-4 text-blue-400">Cooperative Maze Navigator</h1>
           <p className="text-lg text-gray-300 mb-2">
-            Navigate through the maze to reach the exit
+            Work together to escape the maze!
           </p>
-          <p className="text-sm text-gray-400">
-            Use touch controls to move your character
+          <p className="text-sm text-gray-400 mb-4">
+            One player navigates while the other guides them through the maze
           </p>
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 text-left max-w-md">
+            <h3 className="text-lg font-bold text-yellow-400 mb-2">How to Play:</h3>
+            <ul className="text-sm text-gray-300 space-y-1">
+              <li>• <strong>Navigator:</strong> Controls movement but has limited visibility</li>
+              <li>• <strong>Guide:</strong> Can see the full maze and gives directions</li>
+              <li>• Communicate to reach the exit together!</li>
+            </ul>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -62,7 +73,7 @@ export default function Game() {
             onClick={handleStartGame}
             className="w-64 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors"
           >
-            Start Game
+            Choose Your Role
           </button>
           
           {currentLevel > 1 && (
@@ -71,6 +82,74 @@ export default function Game() {
             </div>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (phase === "role-select") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold mb-4 text-blue-400">Choose Your Role</h2>
+          <p className="text-lg text-gray-300 mb-6">
+            Which role will you play in this cooperative maze challenge?
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
+          {/* Navigator Role */}
+          <div className="bg-gray-800 rounded-lg p-6 border-2 border-gray-600 hover:border-blue-500 transition-colors">
+            <h3 className="text-xl font-bold text-blue-400 mb-3">🕹️ Navigator</h3>
+            <p className="text-gray-300 mb-4">
+              You control the player's movement through the maze using touch controls.
+            </p>
+            <ul className="text-sm text-gray-400 mb-6 space-y-1">
+              <li>• Can move the blue dot through the maze</li>
+              <li>• Has limited or no visibility of the maze walls</li>
+              <li>• Must rely on the Guide's directions</li>
+              <li>• Perfect for the person who likes hands-on control</li>
+            </ul>
+            <button
+              onClick={() => {
+                setRole('navigator');
+                start();
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            >
+              I'll Navigate!
+            </button>
+          </div>
+
+          {/* Guide Role */}
+          <div className="bg-gray-800 rounded-lg p-6 border-2 border-gray-600 hover:border-green-500 transition-colors">
+            <h3 className="text-xl font-bold text-green-400 mb-3">🗺️ Guide</h3>
+            <p className="text-gray-300 mb-4">
+              You can see the full maze and help guide the Navigator to the exit.
+            </p>
+            <ul className="text-sm text-gray-400 mb-6 space-y-1">
+              <li>• Can see the complete maze layout</li>
+              <li>• Watches the Navigator's position in real-time</li>
+              <li>• Cannot directly control the player</li>
+              <li>• Perfect for the person who likes strategy and communication</li>
+            </ul>
+            <button
+              onClick={() => {
+                setRole('guide');
+                start();
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            >
+              I'll Guide!
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={() => restart()}
+          className="mt-6 text-gray-400 hover:text-white transition-colors underline"
+        >
+          ← Back to Main Menu
+        </button>
       </div>
     );
   }

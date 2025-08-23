@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { useAudio } from "../lib/stores/useAudio";
+import { useGame } from "../lib/stores/useGame";
 
 export default function TouchControls() {
   const [activeDirection, setActiveDirection] = useState<string | null>(null);
   const { playHit } = useAudio();
+  const { playerRole } = useGame();
+
+  // Only show controls for Navigator players
+  if (playerRole !== 'navigator') {
+    return null;
+  }
 
   const handleMove = (direction: 'up' | 'down' | 'left' | 'right') => {
     // Call the global move function exposed by MazeCanvas
