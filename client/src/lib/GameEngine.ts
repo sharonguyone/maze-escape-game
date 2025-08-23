@@ -365,13 +365,14 @@ export class GameEngine {
   }
 
   private async syncGameStateFromServer() {
-    const { roomCode, phase } = useGame.getState();
+    const { roomCode, phase, playerId, isCreator, playerRole } = useGame.getState();
     if (!roomCode) return;
 
     try {
-      const response = await fetch(`/api/game-state/${roomCode}`);
-      if (response.ok) {
-        const serverState = await response.json();
+      // Sync game state (level completion, etc.)
+      const gameStateResponse = await fetch(`/api/game-state/${roomCode}`);
+      if (gameStateResponse.ok) {
+        const serverState = await gameStateResponse.json();
         const currentState = useGame.getState();
         
         // Check if server state changed (level complete, etc.)
@@ -383,6 +384,22 @@ export class GameEngine {
             if (this.onWin) {
               this.onWin();
             }
+          }
+        }
+      }
+
+      // For non-creators, also sync role changes
+      if (!isCreator && playerId) {
+        const roleResponse = await fetch(`/api/role/${roomCode}`);
+        if (roleResponse.ok) {
+          const roleData = await roleResponse.json();
+          const serverRole = roleData.roles[playerId];
+          
+          if (serverRole && serverRole !== playerRole) {
+            // Role was changed by creator - update local role
+            const { setRole } = useGame.getState();
+            useGame.setState({ playerRole: serverRole });
+            console.log(`Role updated by creator: ${serverRole}`);
           }
         }
       }

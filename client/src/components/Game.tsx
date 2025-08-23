@@ -7,7 +7,7 @@ import TouchControls from "./TouchControls";
 import GameUI from "./GameUI";
 
 export default function Game() {
-  const { phase, playerRole, gameMode, roomCode, currentLevel, start, restart, nextLevel, setRole, selectRole, createGame, joinGame } = useGame();
+  const { phase, playerRole, gameMode, roomCode, currentLevel, isCreator, start, restart, nextLevel, switchRoles, setCreatorRole, selectRole, createGame, joinGame } = useGame();
   const { generateSharedMaze, currentLevel: mazeLevel } = useMaze();
   const { backgroundMusic, isMuted } = useAudio();
   const [joinCode, setJoinCode] = useState("");
@@ -143,115 +143,220 @@ export default function Game() {
   }
 
   if (phase === "role-select") {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold mb-2 text-blue-400">Choose Your Role</h2>
-          <p className="text-sm text-gray-300 mb-3">
-            Which role will you play?
-          </p>
-          <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-2 mb-4 max-w-xs">
-            <p className="text-xs text-yellow-200">
-              💡 Make sure your teammate chooses the other role!
+    if (isCreator) {
+      // Creator selects roles for both players
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold mb-2 text-blue-400">👑 Choose Roles</h2>
+            <p className="text-sm text-gray-300 mb-3">
+              As the room creator, you choose which role you'll play
             </p>
+            <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-2 mb-4 max-w-md">
+              <p className="text-xs text-blue-200">
+                👑 <strong>You are the room creator</strong><br/>
+                Your partner will automatically get the other role
+              </p>
+            </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3 max-w-md w-full mb-4">
+            {/* Navigator Role */}
+            <div className="bg-gray-800 rounded-lg p-3 border-2 border-gray-600 hover:border-blue-500 transition-colors">
+              <h3 className="text-base font-bold text-blue-400 mb-2">🕹️ Navigator</h3>
+              <p className="text-xs text-gray-300 mb-2">
+                Control movement
+              </p>
+              <ul className="text-xs text-gray-400 mb-3 space-y-1">
+                <li>• Move blue dot</li>
+                <li>• Limited vision</li>
+                <li>• Follow directions</li>
+              </ul>
+              <button
+                onClick={() => {
+                  setCreatorRole('navigator');
+                  start();
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
+              >
+                I'll Navigate!
+              </button>
+            </div>
+
+            {/* Guide Role */}
+            <div className="bg-gray-800 rounded-lg p-3 border-2 border-gray-600 hover:border-green-500 transition-colors">
+              <h3 className="text-base font-bold text-green-400 mb-2">🗺️ Guide</h3>
+              <p className="text-xs text-gray-300 mb-2">
+                Give directions
+              </p>
+              <ul className="text-xs text-gray-400 mb-3 space-y-1">
+                <li>• See full maze</li>
+                <li>• Watch Navigator</li>
+                <li>• Give directions</li>
+              </ul>
+              <button
+                onClick={() => {
+                  setCreatorRole('guide');
+                  start();
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
+              >
+                I'll Guide!
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={() => restart()}
+            className="text-gray-400 hover:text-white transition-colors underline text-sm"
+          >
+            ← Back to Main Menu
+          </button>
         </div>
-
-        <div className="grid grid-cols-2 gap-3 max-w-md w-full mb-4">
-          {/* Navigator Role */}
-          <div className="bg-gray-800 rounded-lg p-3 border-2 border-gray-600 hover:border-blue-500 transition-colors">
-            <h3 className="text-base font-bold text-blue-400 mb-2">🕹️ Navigator</h3>
-            <p className="text-xs text-gray-300 mb-2">
-              Control movement
+      );
+    } else {
+      // Non-creator waits for role assignment
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-4">⏳</div>
+            <h2 className="text-2xl font-bold mb-2 text-yellow-400">Waiting for Role Assignment</h2>
+            <p className="text-md text-gray-300 mb-4">
+              The room creator is choosing roles...
             </p>
-            <ul className="text-xs text-gray-400 mb-3 space-y-1">
-              <li>• Move blue dot</li>
-              <li>• Limited vision</li>
-              <li>• Follow directions</li>
-            </ul>
-            <button
-              onClick={() => {
-                setRole('navigator');
-                start();
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
-            >
-              I'll Navigate!
-            </button>
+            <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 mb-4 max-w-md">
+              <p className="text-sm text-yellow-200">
+                🎭 <strong>Your partner will assign your role</strong><br/>
+                You'll automatically start once roles are chosen
+              </p>
+            </div>
+          </div>
+          
+          <div className="animate-pulse">
+            <div className="flex space-x-2">
+              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+            </div>
           </div>
 
-          {/* Guide Role */}
-          <div className="bg-gray-800 rounded-lg p-3 border-2 border-gray-600 hover:border-green-500 transition-colors">
-            <h3 className="text-base font-bold text-green-400 mb-2">🗺️ Guide</h3>
-            <p className="text-xs text-gray-300 mb-2">
-              Give directions
-            </p>
-            <ul className="text-xs text-gray-400 mb-3 space-y-1">
-              <li>• See full maze</li>
-              <li>• Watch Navigator</li>
-              <li>• Give directions</li>
-            </ul>
-            <button
-              onClick={() => {
-                setRole('guide');
-                start();
-              }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
-            >
-              I'll Guide!
-            </button>
-          </div>
+          <button
+            onClick={() => restart()}
+            className="mt-6 text-gray-400 hover:text-white transition-colors underline text-sm"
+          >
+            ← Back to Main Menu
+          </button>
         </div>
-
-        <button
-          onClick={() => restart()}
-          className="text-gray-400 hover:text-white transition-colors underline text-sm"
-        >
-          ← Back to Main Menu
-        </button>
-      </div>
-    );
+      );
+    }
   }
 
   if (phase === "level-complete") {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-3xl font-bold mb-4 text-green-400">
-            Level {currentLevel} Complete!
-          </h2>
-          <p className="text-lg text-gray-300 mb-2">
-            🎯 Both Navigator and Guide succeeded!
-          </p>
-          <p className="text-md text-green-300 mb-4">
-            Great teamwork! You've escaped the maze together!
-          </p>
-          <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-lg p-4 mb-6 max-w-md">
-            <p className="text-green-200 text-sm">
-              ✨ <strong>Navigator:</strong> Great navigation skills!<br />
-              🗺️ <strong>Guide:</strong> Excellent directions!
+    if (isCreator) {
+      // Creator controls next level and role switching
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4">
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-3xl font-bold mb-4 text-green-400">
+              Level {currentLevel} Complete!
+            </h2>
+            <p className="text-lg text-gray-300 mb-2">
+              🎯 Both Navigator and Guide succeeded!
             </p>
+            <p className="text-md text-green-300 mb-4">
+              Great teamwork! You've escaped the maze together!
+            </p>
+            <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-lg p-4 mb-4 max-w-md">
+              <p className="text-green-200 text-sm">
+                ✨ <strong>Navigator:</strong> Great navigation skills!<br />
+                🗺️ <strong>Guide:</strong> Excellent directions!
+              </p>
+            </div>
+            <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-3 mb-6 max-w-md">
+              <p className="text-xs text-blue-200">
+                👑 <strong>You control the next level</strong><br/>
+                Choose to continue or switch roles
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              onClick={handleNextLevel}
+              className="w-64 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg"
+            >
+              🚀 Next Level (Same Roles)
+            </button>
+            
+            <button
+              onClick={() => {
+                switchRoles();
+                handleNextLevel();
+              }}
+              className="w-64 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg"
+            >
+              🔄 Switch Roles & Next Level
+            </button>
+            
+            <button
+              onClick={handleRestartGame}
+              className="w-64 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors"
+            >
+              🏠 Restart Game
+            </button>
           </div>
         </div>
-
-        <div className="space-y-4">
-          <button
-            onClick={handleNextLevel}
-            className="w-64 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg"
-          >
-            🚀 Next Level
-          </button>
-          
-          <button
-            onClick={handleRestartGame}
-            className="w-64 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors"
-          >
-            🔄 Restart Game
-          </button>
+      );
+    } else {
+      // Non-creator waits for creator's decision
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4">
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-3xl font-bold mb-4 text-green-400">
+              Level {currentLevel} Complete!
+            </h2>
+            <p className="text-lg text-gray-300 mb-2">
+              🎯 Both Navigator and Guide succeeded!
+            </p>
+            <p className="text-md text-green-300 mb-4">
+              Great teamwork! You've escaped the maze together!
+            </p>
+            <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-lg p-4 mb-4 max-w-md">
+              <p className="text-green-200 text-sm">
+                ✨ <strong>Navigator:</strong> Great navigation skills!<br />
+                🗺️ <strong>Guide:</strong> Excellent directions!
+              </p>
+            </div>
+            
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-4">⏳</div>
+              <h3 className="text-xl font-bold mb-2 text-yellow-400">Waiting for Next Level</h3>
+              <p className="text-md text-gray-300 mb-4">
+                The room creator is deciding what's next...
+              </p>
+              <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 mb-4 max-w-md">
+                <p className="text-sm text-yellow-200">
+                  🎮 <strong>Your partner will choose:</strong><br/>
+                  • Continue to next level<br/>
+                  • Switch your roles<br/>
+                  • Restart the game
+                </p>
+              </div>
+            </div>
+            
+            <div className="animate-pulse">
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   if (phase === "ended") {

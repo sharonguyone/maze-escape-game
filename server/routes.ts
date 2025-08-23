@@ -75,6 +75,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ roles });
   });
 
+  // API endpoint to switch roles (creator only)
+  app.post('/api/switch-roles/:roomCode', (req, res) => {
+    const { roomCode } = req.params;
+    const room = gameRooms[roomCode];
+    
+    if (!room || !room.roles) {
+      res.status(404).json({ error: 'Room or roles not found' });
+      return;
+    }
+    
+    const roles = room.roles;
+    // Switch the roles
+    const temp = roles.player1;
+    roles.player1 = roles.player2;
+    roles.player2 = temp;
+    
+    console.log(`Roles switched for room ${roomCode}:`, roles);
+    res.json({ roles });
+  });
+
   // API endpoint to get room roles
   app.get('/api/role/:roomCode', (req, res) => {
     const { roomCode } = req.params;

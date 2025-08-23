@@ -13,6 +13,7 @@ interface GameState {
   sharedPlayerPosition: { x: number; y: number } | null;
   playerId: string | null;
   currentLevel: number;
+  isCreator: boolean;
   
   // Actions
   start: () => void;
@@ -20,7 +21,9 @@ interface GameState {
   end: () => void;
   levelComplete: () => void;
   nextLevel: () => void;
+  switchRoles: () => void;
   setRole: (role: PlayerRole) => Promise<void>;
+  setCreatorRole: (role: PlayerRole) => Promise<void>;
   selectRole: () => void;
   createGame: () => void;
   joinGame: (code: string) => void;
@@ -106,6 +109,7 @@ export const useGame = create<GameState>()(
     sharedPlayerPosition: null,
     playerId: null,
     currentLevel: 1,
+    isCreator: false,
     
     start: () => {
       set((state) => {
@@ -125,7 +129,8 @@ export const useGame = create<GameState>()(
         roomCode: null,
         sharedPlayerPosition: null,
         playerId: null,
-        currentLevel: 1
+        currentLevel: 1,
+        isCreator: false
       }));
       // Clear URL parameters
       const url = new URL(window.location.href);
@@ -168,6 +173,55 @@ export const useGame = create<GameState>()(
       const state = get();
       if (state.roomCode) {
         updateGameState(state.roomCode, "level-complete", state.currentLevel);
+      }
+    },
+
+    switchRoles: async () => {
+      const state = get();
+      if (state.roomCode && state.isCreator) {
+        try {
+          const response = await fetch(`/api/switch-roles/${state.roomCode}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // Update local role based on server response
+            const myRole = data.roles[state.playerId];
+            set(() => ({ playerRole: myRole }));
+            console.log('Roles switched successfully');
+          }
+        } catch (error) {
+          console.error('Failed to switch roles:', error);
+        }
+      }
+    },
+
+    setCreatorRole: async (role: PlayerRole) => {
+      const state = get();
+      if (state.roomCode && state.playerId && role && state.isCreator) {
+        try {
+          const response = await fetch(`/api/role/${state.roomCode}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ role, playerId: state.playerId }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const myRole = data.roles[state.playerId];
+            set(() => ({ playerRole: myRole }));
+            console.log(`Creator assigned roles: ${myRole} (partner gets ${myRole === 'navigator' ? 'guide' : 'navigator'})`);
+          }
+        } catch (error) {
+          console.error('Failed to set creator role:', error);
+          set(() => ({ playerRole: role }));
+        }
       }
     },
     
@@ -221,7 +275,8 @@ export const useGame = create<GameState>()(
         phase: "room-setup", 
         gameMode: "create", 
         roomCode,
-        playerId 
+        playerId,
+        isCreator: true
       }));
     },
 
@@ -236,7 +291,8 @@ export const useGame = create<GameState>()(
         phase: "room-setup", 
         gameMode: "join", 
         roomCode: code,
-        playerId 
+        playerId,
+        isCreator: false
       }));
     },
 
