@@ -97,61 +97,59 @@ export default function Game() {
 
   if (phase === "role-select") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-4 text-blue-400">Choose Your Role</h2>
-          <p className="text-lg text-gray-300 mb-2">
-            Which role will you play in this cooperative maze challenge?
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold mb-2 text-blue-400">Choose Your Role</h2>
+          <p className="text-sm text-gray-300 mb-3">
+            Which role will you play?
           </p>
-          <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 mb-6 max-w-md">
-            <p className="text-sm text-yellow-200">
-              💡 <strong>Reminder:</strong> Make sure your teammate opens this same game on their phone and chooses the other role!
+          <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-2 mb-4 max-w-xs">
+            <p className="text-xs text-yellow-200">
+              💡 Make sure your teammate chooses the other role!
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
+        <div className="grid grid-cols-1 gap-4 max-w-sm w-full mb-4">
           {/* Navigator Role */}
-          <div className="bg-gray-800 rounded-lg p-6 border-2 border-gray-600 hover:border-blue-500 transition-colors">
-            <h3 className="text-xl font-bold text-blue-400 mb-3">🕹️ Navigator</h3>
-            <p className="text-gray-300 mb-4">
-              You control the player's movement through the maze using touch controls.
+          <div className="bg-gray-800 rounded-lg p-4 border-2 border-gray-600 hover:border-blue-500 transition-colors">
+            <h3 className="text-lg font-bold text-blue-400 mb-2">🕹️ Navigator</h3>
+            <p className="text-sm text-gray-300 mb-2">
+              Control movement with limited vision
             </p>
-            <ul className="text-sm text-gray-400 mb-6 space-y-1">
-              <li>• Can move the blue dot through the maze</li>
-              <li>• Has limited or no visibility of the maze walls</li>
-              <li>• Must rely on the Guide's directions</li>
-              <li>• Perfect for the person who likes hands-on control</li>
+            <ul className="text-xs text-gray-400 mb-3 space-y-1">
+              <li>• Move the blue dot</li>
+              <li>• Limited maze visibility</li>
+              <li>• Follow Guide's directions</li>
             </ul>
             <button
               onClick={() => {
                 setRole('navigator');
                 start();
               }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
             >
               I'll Navigate!
             </button>
           </div>
 
           {/* Guide Role */}
-          <div className="bg-gray-800 rounded-lg p-6 border-2 border-gray-600 hover:border-green-500 transition-colors">
-            <h3 className="text-xl font-bold text-green-400 mb-3">🗺️ Guide</h3>
-            <p className="text-gray-300 mb-4">
-              You can see the full maze and help guide the Navigator to the exit.
+          <div className="bg-gray-800 rounded-lg p-4 border-2 border-gray-600 hover:border-green-500 transition-colors">
+            <h3 className="text-lg font-bold text-green-400 mb-2">🗺️ Guide</h3>
+            <p className="text-sm text-gray-300 mb-2">
+              See full maze and give directions
             </p>
-            <ul className="text-sm text-gray-400 mb-6 space-y-1">
-              <li>• Can see the complete maze layout</li>
-              <li>• Watches the Navigator's position in real-time</li>
-              <li>• Cannot directly control the player</li>
-              <li>• Perfect for the person who likes strategy and communication</li>
+            <ul className="text-xs text-gray-400 mb-3 space-y-1">
+              <li>• See complete maze</li>
+              <li>• Watch Navigator move</li>
+              <li>• Give verbal directions</li>
             </ul>
             <button
               onClick={() => {
                 setRole('guide');
                 start();
               }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
             >
               I'll Guide!
             </button>
@@ -160,7 +158,7 @@ export default function Game() {
 
         <button
           onClick={() => restart()}
-          className="mt-6 text-gray-400 hover:text-white transition-colors underline"
+          className="text-gray-400 hover:text-white transition-colors underline text-sm"
         >
           ← Back to Main Menu
         </button>
