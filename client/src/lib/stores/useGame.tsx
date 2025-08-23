@@ -216,6 +216,10 @@ export const useGame = create<GameState>()(
             const data = await response.json();
             const myRole = data.roles[state.playerId];
             set(() => ({ playerRole: myRole }));
+            
+            // Update game state to playing so both players start
+            await updateGameState(state.roomCode, "playing", state.currentLevel);
+            
             console.log(`Creator assigned roles: ${myRole} (partner gets ${myRole === 'navigator' ? 'guide' : 'navigator'})`);
           }
         } catch (error) {

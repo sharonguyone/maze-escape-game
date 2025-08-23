@@ -11,6 +11,7 @@ export default function Game() {
   const { generateSharedMaze, currentLevel: mazeLevel } = useMaze();
   const { backgroundMusic, isMuted } = useAudio();
   const [joinCode, setJoinCode] = useState("");
+  const [roleSyncInterval, setRoleSyncInterval] = useState<number | null>(null);
 
   // Check for existing room code in URL when component mounts
   useEffect(() => {
@@ -40,6 +41,64 @@ export default function Game() {
       }
     }
   }, [backgroundMusic, isMuted, phase]);
+
+  // Role and game state synchronization during role-select phase
+  useEffect(() => {
+    if (phase === "role-select" && roomCode) {
+      // Start polling for role assignment and game state changes
+      const interval = window.setInterval(async () => {
+        try {
+          // Check for role changes (for non-creators)
+          if (!isCreator) {
+            const roleResponse = await fetch(`/api/role/${roomCode}`);
+            if (roleResponse.ok) {
+              const roleData = await roleResponse.json();
+              const { playerId } = useGame.getState();
+              const assignedRole = roleData.roles[playerId];
+              
+              if (assignedRole && assignedRole !== playerRole) {
+                // Role was assigned by creator
+                useGame.setState({ playerRole: assignedRole });
+                console.log(`Role assigned by creator: ${assignedRole}`);
+              }
+            }
+          }
+          
+          // Check for game state changes (for both players)
+          const gameStateResponse = await fetch(`/api/game-state/${roomCode}`);
+          if (gameStateResponse.ok) {
+            const gameStateData = await gameStateResponse.json();
+            const currentPhase = useGame.getState().phase;
+            
+            if (gameStateData.phase === 'playing' && currentPhase === 'role-select') {
+              // Game started by creator
+              console.log('Game started by creator, transitioning to playing phase');
+              start();
+            }
+          }
+        } catch (error) {
+          console.error('Failed to sync role/game state:', error);
+        }
+      }, 1000); // Poll every second
+      
+      setRoleSyncInterval(interval);
+      console.log('Started role/game state sync');
+      
+      return () => {
+        if (interval) {
+          clearInterval(interval);
+          setRoleSyncInterval(null);
+          console.log('Stopped role/game state sync');
+        }
+      };
+    } else {
+      // Clean up interval if not needed
+      if (roleSyncInterval) {
+        clearInterval(roleSyncInterval);
+        setRoleSyncInterval(null);
+      }
+    }
+  }, [phase, isCreator, roomCode, playerRole, start]);
 
   const handleStartGame = () => {
     selectRole();
