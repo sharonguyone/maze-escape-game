@@ -16,17 +16,21 @@ interface MazeState {
   generateSharedMaze: (width: number, height: number) => void;
 }
 
-// Helper function to get/set maze seed from URL
-const getMazeSeedFromURL = (): number | null => {
+// Helper function to get room code from URL and convert to seed
+const getRoomCodeFromURL = (): string | null => {
   const params = new URLSearchParams(window.location.search);
-  const seed = params.get('mazeSeed');
-  return seed ? parseInt(seed, 10) : null;
+  return params.get('room');
 };
 
-const setMazeSeedInURL = (seed: number) => {
-  const url = new URL(window.location.href);
-  url.searchParams.set('mazeSeed', seed.toString());
-  window.history.replaceState({}, '', url.toString());
+const roomCodeToSeed = (roomCode: string): number => {
+  // Convert room code to consistent seed number
+  let hash = 0;
+  for (let i = 0; i < roomCode.length; i++) {
+    const char = roomCode.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
 };
 
 export const useMaze = create<MazeState>()(
@@ -55,15 +59,15 @@ export const useMaze = create<MazeState>()(
     },
 
     generateSharedMaze: (width: number, height: number) => {
-      // Check if there's already a seed in the URL (second player joining)
-      let mazeSeed = getMazeSeedFromURL();
+      // Get room code from URL and convert to seed
+      const roomCode = getRoomCodeFromURL();
       
-      if (!mazeSeed) {
-        // First player - generate new seed and add to URL
-        mazeSeed = Math.floor(Math.random() * 1000000);
-        setMazeSeedInURL(mazeSeed);
+      if (!roomCode) {
+        console.error('No room code found for shared maze generation');
+        return;
       }
 
+      const mazeSeed = roomCodeToSeed(roomCode);
       const generator = new MazeGenerator(width, height, mazeSeed);
       const newMaze = generator.generate();
       const startPos = generator.getStartPosition();
@@ -76,7 +80,7 @@ export const useMaze = create<MazeState>()(
         currentSeed: mazeSeed,
       });
       
-      console.log(`Generated SHARED ${width}x${height} maze with seed ${mazeSeed}`, new Date().toISOString());
+      console.log(`Generated SHARED ${width}x${height} maze for room ${roomCode} with seed ${mazeSeed}`, new Date().toISOString());
     },
     
     nextLevel: () => {
