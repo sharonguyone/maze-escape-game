@@ -79,19 +79,24 @@ export default function Game() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <button
             onClick={handleStartGame}
-            className="w-64 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors"
+            className="w-80 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-bold py-6 px-8 rounded-xl text-xl transition-all transform hover:scale-105 shadow-lg"
           >
-            Choose Your Role
+            🎮 START GAME - Choose Your Role
           </button>
           
-          {currentLevel > 1 && (
-            <div className="text-center text-sm text-gray-400">
-              Current Level: {currentLevel}
-            </div>
-          )}
+          <div className="text-center">
+            <p className="text-sm text-gray-400 mb-2">
+              👆 Click this button to begin playing
+            </p>
+            {currentLevel > 1 && (
+              <div className="text-sm text-gray-500">
+                Current Level: {currentLevel}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
