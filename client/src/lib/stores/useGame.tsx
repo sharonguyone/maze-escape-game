@@ -10,6 +10,7 @@ interface GameState {
   playerRole: PlayerRole;
   gameMode: GameMode;
   roomCode: string | null;
+  sharedPlayerPosition: { x: number; y: number } | null;
   
   // Actions
   start: () => void;
@@ -20,6 +21,8 @@ interface GameState {
   createGame: () => void;
   joinGame: (code: string) => void;
   setGameMode: (mode: GameMode) => void;
+  updatePlayerPosition: (x: number, y: number) => void;
+  initializePlayerPosition: (x: number, y: number) => void;
 }
 
 // Helper to generate room codes
@@ -33,12 +36,35 @@ const getRoomCodeFromURL = (): string | null => {
   return params.get('room');
 };
 
+// Shared position storage using localStorage for real-time sync
+const getSharedPositionKey = (roomCode: string) => `maze_position_${roomCode}`;
+
+const saveSharedPosition = (roomCode: string, x: number, y: number) => {
+  const key = getSharedPositionKey(roomCode);
+  localStorage.setItem(key, JSON.stringify({ x, y, timestamp: Date.now() }));
+};
+
+const loadSharedPosition = (roomCode: string): { x: number; y: number } | null => {
+  const key = getSharedPositionKey(roomCode);
+  const stored = localStorage.getItem(key);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      return { x: parsed.x, y: parsed.y };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
 export const useGame = create<GameState>()(
-  subscribeWithSelector((set) => ({
+  subscribeWithSelector((set, get) => ({
     phase: "ready",
     playerRole: null,
     gameMode: null,
     roomCode: null,
+    sharedPlayerPosition: null,
     
     start: () => {
       set((state) => {
@@ -55,7 +81,8 @@ export const useGame = create<GameState>()(
         phase: "ready", 
         playerRole: null, 
         gameMode: null, 
-        roomCode: null 
+        roomCode: null,
+        sharedPlayerPosition: null
       }));
       // Clear URL parameters
       const url = new URL(window.location.href);
@@ -110,6 +137,31 @@ export const useGame = create<GameState>()(
         gameMode: "join", 
         roomCode: code 
       }));
+    },
+
+    updatePlayerPosition: (x: number, y: number) => {
+      const state = get();
+      if (state.roomCode) {
+        // Save to shared storage
+        saveSharedPosition(state.roomCode, x, y);
+        // Update local state
+        set(() => ({ sharedPlayerPosition: { x, y } }));
+      }
+    },
+
+    initializePlayerPosition: (x: number, y: number) => {
+      const state = get();
+      if (state.roomCode) {
+        // Check if there's already a shared position
+        const existing = loadSharedPosition(state.roomCode);
+        if (existing) {
+          set(() => ({ sharedPlayerPosition: existing }));
+        } else {
+          // Initialize with starting position
+          saveSharedPosition(state.roomCode, x, y);
+          set(() => ({ sharedPlayerPosition: { x, y } }));
+        }
+      }
     }
   }))
 );

@@ -1,6 +1,6 @@
 import { Cell } from './MazeGenerator';
 import { Player } from './Player';
-import { PlayerRole } from './stores/useGame';
+import { PlayerRole, useGame } from './stores/useGame';
 
 export class GameEngine {
   private ctx: CanvasRenderingContext2D;
@@ -13,6 +13,8 @@ export class GameEngine {
   private offsetY: number;
   private animationId: number | null = null;
   private playerRole: PlayerRole;
+  private positionSyncInterval: number | null = null;
+  private storageEventHandler: ((e: StorageEvent) => void) | null = null;
   public onWin: (() => void) | null = null;
 
   constructor(
@@ -44,10 +46,16 @@ export class GameEngine {
     this.offsetY = (canvasHeight - totalMazeHeight) / 2;
 
     this.player = new Player(startPos.x, startPos.y, this.cellSize);
+    
+    // Initialize shared position
+    const { initializePlayerPosition } = useGame.getState();
+    initializePlayerPosition(startPos.x, startPos.y);
   }
 
   public start() {
     this.gameLoop();
+    // Start position synchronization
+    this.startPositionSync();
   }
 
   public stop() {
@@ -55,6 +63,8 @@ export class GameEngine {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
+    // Stop position synchronization
+    this.stopPositionSync();
   }
 
   private gameLoop = () => {
@@ -63,6 +73,11 @@ export class GameEngine {
   };
 
   private render() {
+    // Sync player position if we're the Guide
+    if (this.playerRole === 'guide') {
+      this.syncPlayerPositionFromShared();
+    }
+
     // Clear canvas
     this.ctx.fillStyle = '#1F2937'; // Dark gray background
     this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -74,6 +89,8 @@ export class GameEngine {
       // Guide view (or default): Show full maze
       this.renderMaze();
       this.renderStartEnd();
+      // Add guide mode indicator
+      this.renderGuideIndicator();
     }
     
     // Always render player
@@ -235,6 +252,11 @@ export class GameEngine {
   }
 
   public movePlayer(direction: 'up' | 'down' | 'left' | 'right') {
+    // Only Navigator can move
+    if (this.playerRole !== 'navigator') {
+      return;
+    }
+
     const currentPos = this.player.getPosition();
     const newPos = { ...currentPos };
 
@@ -256,6 +278,10 @@ export class GameEngine {
     // Check if the move is valid (no wall blocking)
     if (this.isValidMove(currentPos, newPos, direction)) {
       this.player.setPosition(newPos.x, newPos.y);
+      
+      // Update shared position for other players to see
+      const { updatePlayerPosition } = useGame.getState();
+      updatePlayerPosition(newPos.x, newPos.y);
 
       // Check win condition
       if (newPos.x === this.endPos.x && newPos.y === this.endPos.y) {
@@ -295,6 +321,80 @@ export class GameEngine {
         return !currentCell.walls.right;
       default:
         return false;
+    }
+  }
+
+  private startPositionSync() {
+    // Only Guide needs to sync position updates
+    if (this.playerRole === 'guide') {
+      // Listen for localStorage changes for real-time updates
+      this.storageEventHandler = (e: StorageEvent) => {
+        const { roomCode } = useGame.getState();
+        if (roomCode && e.key === `maze_position_${roomCode}` && e.newValue) {
+          try {
+            const position = JSON.parse(e.newValue);
+            const currentPos = this.player.getPosition();
+            if (currentPos.x !== position.x || currentPos.y !== position.y) {
+              this.player.setPosition(position.x, position.y);
+            }
+          } catch (error) {
+            console.log('Error parsing position update:', error);
+          }
+        }
+      };
+      
+      window.addEventListener('storage', this.storageEventHandler);
+      
+      // Also poll as backup (for same-tab testing)
+      this.positionSyncInterval = window.setInterval(() => {
+        this.syncPlayerPositionFromShared();
+      }, 200); // Poll every 200ms as backup
+    }
+  }
+
+  private stopPositionSync() {
+    if (this.positionSyncInterval) {
+      clearInterval(this.positionSyncInterval);
+      this.positionSyncInterval = null;
+    }
+    if (this.storageEventHandler) {
+      window.removeEventListener('storage', this.storageEventHandler);
+      this.storageEventHandler = null;
+    }
+  }
+
+  private syncPlayerPositionFromShared() {
+    const { sharedPlayerPosition } = useGame.getState();
+    if (sharedPlayerPosition) {
+      const currentPos = this.player.getPosition();
+      if (currentPos.x !== sharedPlayerPosition.x || currentPos.y !== sharedPlayerPosition.y) {
+        this.player.setPosition(sharedPlayerPosition.x, sharedPlayerPosition.y);
+      }
+    }
+  }
+
+  private renderGuideIndicator() {
+    if (this.playerRole === 'guide') {
+      // Add text indicator at top of screen
+      this.ctx.fillStyle = '#10B981'; // Green color
+      this.ctx.font = 'bold 16px Inter, sans-serif';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'top';
+      this.ctx.fillText(
+        'GUIDE VIEW - Watching Navigator',
+        this.ctx.canvas.width / 2,
+        10
+      );
+      
+      // Add small arrow pointing to player
+      const playerPos = this.player.getPosition();
+      const playerPixelX = playerPos.x * this.cellSize + this.offsetX + this.cellSize / 2;
+      const playerPixelY = playerPos.y * this.cellSize + this.offsetY - 15;
+      
+      this.ctx.fillStyle = '#10B981';
+      this.ctx.font = '12px Inter, sans-serif';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText('↓ Navigator', playerPixelX, playerPixelY);
     }
   }
 }
