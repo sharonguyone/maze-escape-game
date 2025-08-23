@@ -110,46 +110,46 @@ export default function Game() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 max-w-sm w-full mb-4">
+        <div className="grid grid-cols-2 gap-3 max-w-md w-full mb-4">
           {/* Navigator Role */}
-          <div className="bg-gray-800 rounded-lg p-4 border-2 border-gray-600 hover:border-blue-500 transition-colors">
-            <h3 className="text-lg font-bold text-blue-400 mb-2">🕹️ Navigator</h3>
-            <p className="text-sm text-gray-300 mb-2">
-              Control movement with limited vision
+          <div className="bg-gray-800 rounded-lg p-3 border-2 border-gray-600 hover:border-blue-500 transition-colors">
+            <h3 className="text-base font-bold text-blue-400 mb-2">🕹️ Navigator</h3>
+            <p className="text-xs text-gray-300 mb-2">
+              Control movement
             </p>
             <ul className="text-xs text-gray-400 mb-3 space-y-1">
-              <li>• Move the blue dot</li>
-              <li>• Limited maze visibility</li>
-              <li>• Follow Guide's directions</li>
+              <li>• Move blue dot</li>
+              <li>• Limited vision</li>
+              <li>• Follow directions</li>
             </ul>
             <button
               onClick={() => {
                 setRole('navigator');
                 start();
               }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
             >
               I'll Navigate!
             </button>
           </div>
 
           {/* Guide Role */}
-          <div className="bg-gray-800 rounded-lg p-4 border-2 border-gray-600 hover:border-green-500 transition-colors">
-            <h3 className="text-lg font-bold text-green-400 mb-2">🗺️ Guide</h3>
-            <p className="text-sm text-gray-300 mb-2">
-              See full maze and give directions
+          <div className="bg-gray-800 rounded-lg p-3 border-2 border-gray-600 hover:border-green-500 transition-colors">
+            <h3 className="text-base font-bold text-green-400 mb-2">🗺️ Guide</h3>
+            <p className="text-xs text-gray-300 mb-2">
+              Give directions
             </p>
             <ul className="text-xs text-gray-400 mb-3 space-y-1">
-              <li>• See complete maze</li>
-              <li>• Watch Navigator move</li>
-              <li>• Give verbal directions</li>
+              <li>• See full maze</li>
+              <li>• Watch Navigator</li>
+              <li>• Give directions</li>
             </ul>
             <button
               onClick={() => {
                 setRole('guide');
                 start();
               }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
             >
               I'll Guide!
             </button>
