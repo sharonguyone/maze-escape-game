@@ -53,18 +53,29 @@ export default function Game() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 text-blue-400">Cooperative Maze Navigator</h1>
           <p className="text-lg text-gray-300 mb-2">
-            Work together to escape the maze!
+            2-Player Cooperative Game for Mobile Phones
           </p>
           <p className="text-sm text-gray-400 mb-4">
-            One player navigates while the other guides them through the maze
+            Each player opens this game on their own phone and chooses a different role
           </p>
-          <div className="bg-gray-800 rounded-lg p-4 mb-6 text-left max-w-md">
-            <h3 className="text-lg font-bold text-yellow-400 mb-2">How to Play:</h3>
-            <ul className="text-sm text-gray-300 space-y-1">
-              <li>• <strong>Navigator:</strong> Controls movement but has limited visibility</li>
-              <li>• <strong>Guide:</strong> Can see the full maze and gives directions</li>
-              <li>• Communicate to reach the exit together!</li>
-            </ul>
+          
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 text-left max-w-lg">
+            <h3 className="text-lg font-bold text-yellow-400 mb-3">📱 Setup Instructions:</h3>
+            <div className="text-sm text-gray-300 space-y-2 mb-4">
+              <p><strong>Step 1:</strong> Both players open this game on separate phones</p>
+              <p><strong>Step 2:</strong> Player 1 chooses "Navigator" role</p>
+              <p><strong>Step 3:</strong> Player 2 chooses "Guide" role</p>
+              <p><strong>Step 4:</strong> Start talking and work together!</p>
+            </div>
+            
+            <div className="border-t border-gray-600 pt-3">
+              <h4 className="text-yellow-400 font-semibold mb-2">🎮 How to Play:</h4>
+              <ul className="text-sm text-gray-300 space-y-1">
+                <li>• <strong>Navigator:</strong> Controls movement, limited visibility</li>
+                <li>• <strong>Guide:</strong> Sees full maze, gives directions</li>
+                <li>• Talk to each other to reach the exit!</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -91,9 +102,14 @@ export default function Game() {
       <div className="min-h-screen flex flex-col items-center justify-center px-4">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold mb-4 text-blue-400">Choose Your Role</h2>
-          <p className="text-lg text-gray-300 mb-6">
+          <p className="text-lg text-gray-300 mb-2">
             Which role will you play in this cooperative maze challenge?
           </p>
+          <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 mb-6 max-w-md">
+            <p className="text-sm text-yellow-200">
+              💡 <strong>Reminder:</strong> Make sure your teammate opens this same game on their phone and chooses the other role!
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
