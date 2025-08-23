@@ -49,37 +49,18 @@ export default function Game() {
 
   if (phase === "ready") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 text-blue-400">Cooperative Maze Navigator</h1>
-          <p className="text-lg text-gray-300 mb-2">
-            2-Player Cooperative Game for Mobile Phones
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold mb-2 text-blue-400">Cooperative Maze Navigator</h1>
+          <p className="text-base text-gray-300 mb-1">
+            2-Player Cooperative Game
           </p>
-          <p className="text-sm text-gray-400 mb-4">
-            Each player opens this game on their own phone and chooses a different role
+          <p className="text-xs text-gray-400 mb-4">
+            Each player opens this on their own phone
           </p>
-          
-          <div className="bg-gray-800 rounded-lg p-4 mb-6 text-left max-w-lg">
-            <h3 className="text-lg font-bold text-yellow-400 mb-3">📱 Setup Instructions:</h3>
-            <div className="text-sm text-gray-300 space-y-2 mb-4">
-              <p><strong>Step 1:</strong> Both players open this game on separate phones</p>
-              <p><strong>Step 2:</strong> Player 1 chooses "Navigator" role</p>
-              <p><strong>Step 3:</strong> Player 2 chooses "Guide" role</p>
-              <p><strong>Step 4:</strong> Start talking and work together!</p>
-            </div>
-            
-            <div className="border-t border-gray-600 pt-3">
-              <h4 className="text-yellow-400 font-semibold mb-2">🎮 How to Play:</h4>
-              <ul className="text-sm text-gray-300 space-y-1">
-                <li>• <strong>Navigator:</strong> Controls movement, limited visibility</li>
-                <li>• <strong>Guide:</strong> Sees full maze, gives directions</li>
-                <li>• Talk to each other to reach the exit!</li>
-              </ul>
-            </div>
-          </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 mb-6">
           <button
             onClick={handleStartGame}
             className="w-80 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-bold py-6 px-8 rounded-xl text-xl transition-all transform hover:scale-105 shadow-lg"
@@ -91,13 +72,25 @@ export default function Game() {
             <p className="text-sm text-gray-400 mb-2">
               👆 Click this button to begin playing
             </p>
-            {currentLevel > 1 && (
-              <div className="text-sm text-gray-500">
-                Current Level: {currentLevel}
-              </div>
-            )}
           </div>
         </div>
+        
+        <div className="bg-gray-800 rounded-lg p-3 text-left max-w-sm">
+          <h3 className="text-sm font-bold text-yellow-400 mb-2">📱 How it works:</h3>
+          <div className="text-xs text-gray-300 space-y-1">
+            <p>1. Both players open this game on separate phones</p>
+            <p>2. One chooses "Navigator", other chooses "Guide"</p>
+            <p>3. Navigator controls movement with limited view</p>
+            <p>4. Guide sees full maze and gives directions</p>
+            <p>5. Talk to each other to reach the exit!</p>
+          </div>
+        </div>
+
+        {currentLevel > 1 && (
+          <div className="text-center text-xs text-gray-500 mt-4">
+            Current Level: {currentLevel}
+          </div>
+        )}
       </div>
     );
   }
