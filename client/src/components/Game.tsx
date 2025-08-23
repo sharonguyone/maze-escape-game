@@ -8,15 +8,15 @@ import GameUI from "./GameUI";
 
 export default function Game() {
   const { phase, playerRole, start, restart, setRole, selectRole } = useGame();
-  const { generateMaze, currentLevel } = useMaze();
+  const { generateSharedMaze, currentLevel } = useMaze();
   const { backgroundMusic, isMuted } = useAudio();
 
   // Initialize the first maze when role is selected
   useEffect(() => {
     if (phase === "role-select") {
-      generateMaze(15, 15); // Start with a 15x15 maze
+      generateSharedMaze(15, 15); // Start with a 15x15 SHARED maze
     }
-  }, [phase, generateMaze]);
+  }, [phase, generateSharedMaze]);
 
   // Handle background music
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function Game() {
 
   const handleRestartGame = () => {
     restart();
-    generateMaze(15, 15);
+    generateSharedMaze(15, 15);
   };
 
   const handleNextLevel = () => {
@@ -43,7 +43,7 @@ export default function Game() {
     nextLevel(); // Increment the level first
     const newLevel = useMaze.getState().currentLevel;
     const newSize = Math.min(25, 15 + newLevel * 2); // Increase maze size each level
-    generateMaze(newSize, newSize);
+    generateSharedMaze(newSize, newSize);
     start();
   };
 

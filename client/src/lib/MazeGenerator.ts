@@ -14,12 +14,32 @@ export class MazeGenerator {
   private width: number;
   private height: number;
   private grid: Cell[][];
+  private seed: number;
+  private rng: () => number;
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, seed?: number) {
     this.width = width;
     this.height = height;
     this.grid = [];
+    this.seed = seed || Math.floor(Math.random() * 1000000);
+    this.rng = this.createSeededRandom(this.seed);
     this.initializeGrid();
+  }
+
+  private createSeededRandom(seed: number): () => number {
+    let m = 0x80000000; // 2**31;
+    let a = 1103515245;
+    let c = 12345;
+    let state = seed;
+    
+    return function() {
+      state = (a * state + c) % m;
+      return state / (m - 1);
+    };
+  }
+
+  public getSeed(): number {
+    return this.seed;
   }
 
   private initializeGrid() {
@@ -100,7 +120,7 @@ export class MazeGenerator {
       const neighbors = this.getUnvisitedNeighbors(current);
 
       if (neighbors.length > 0) {
-        const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+        const randomNeighbor = neighbors[Math.floor(this.rng() * neighbors.length)];
         randomNeighbor.visited = true;
         
         this.removeWall(current, randomNeighbor);
