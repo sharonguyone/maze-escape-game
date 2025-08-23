@@ -14,6 +14,7 @@ export class GameEngine {
   private animationId: number | null = null;
   private playerRole: PlayerRole;
   private positionSyncInterval: number | null = null;
+  private gameStateSyncInterval: number | null = null;
   private storageEventHandler: ((e: Event) => void) | null = null;
   public onWin: (() => void) | null = null;
 
@@ -56,6 +57,8 @@ export class GameEngine {
     this.gameLoop();
     // Start position synchronization
     this.startPositionSync();
+    // Start game state synchronization
+    this.startGameStateSync();
   }
 
   public stop() {
@@ -65,6 +68,8 @@ export class GameEngine {
     }
     // Stop position synchronization
     this.stopPositionSync();
+    // Stop game state synchronization
+    this.stopGameStateSync();
   }
 
   private gameLoop = () => {
@@ -282,6 +287,9 @@ export class GameEngine {
 
       // Check win condition
       if (newPos.x === this.endPos.x && newPos.y === this.endPos.y) {
+        const { broadcastWin } = useGame.getState();
+        broadcastWin(); // Notify both players
+        
         if (this.onWin) {
           this.onWin();
         }
@@ -337,6 +345,49 @@ export class GameEngine {
     if (this.positionSyncInterval) {
       clearInterval(this.positionSyncInterval);
       this.positionSyncInterval = null;
+    }
+  }
+
+  private startGameStateSync() {
+    // Both players need to sync game state
+    this.gameStateSyncInterval = window.setInterval(() => {
+      this.syncGameStateFromServer();
+    }, 1000); // Check every second for game state changes
+    
+    console.log('Started game state synchronization');
+  }
+
+  private stopGameStateSync() {
+    if (this.gameStateSyncInterval) {
+      clearInterval(this.gameStateSyncInterval);
+      this.gameStateSyncInterval = null;
+    }
+  }
+
+  private async syncGameStateFromServer() {
+    const { roomCode, phase } = useGame.getState();
+    if (!roomCode) return;
+
+    try {
+      const response = await fetch(`/api/game-state/${roomCode}`);
+      if (response.ok) {
+        const serverState = await response.json();
+        const currentState = useGame.getState();
+        
+        // Check if server state changed (level complete, etc.)
+        if (serverState.phase !== currentState.phase) {
+          if (serverState.phase === 'level-complete' && currentState.phase === 'playing') {
+            // Trigger win condition for both players
+            const { levelComplete } = useGame.getState();
+            levelComplete();
+            if (this.onWin) {
+              this.onWin();
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Silently ignore errors - just try again on next poll
     }
   }
 

@@ -9,7 +9,7 @@ export default function MazeCanvas() {
   const gameEngineRef = useRef<GameEngine | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const { maze, startPos, endPos } = useMaze();
-  const { end, playerRole } = useGame();
+  const { levelComplete, playerRole } = useGame();
   const { playSuccess } = useAudio();
 
   // Calculate canvas size based on screen
@@ -51,7 +51,7 @@ export default function MazeCanvas() {
     gameEngineRef.current.onWin = () => {
       playSuccess();
       setTimeout(() => {
-        end();
+        levelComplete();
       }, 1000);
     };
 
@@ -61,7 +61,7 @@ export default function MazeCanvas() {
     return () => {
       gameEngineRef.current?.stop();
     };
-  }, [maze, startPos, endPos, canvasSize, playerRole, end, playSuccess]);
+  }, [maze, startPos, endPos, canvasSize, playerRole, levelComplete, playSuccess]);
 
   // Handle touch/mouse controls
   const handleMove = (direction: 'up' | 'down' | 'left' | 'right') => {

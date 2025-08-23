@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
-export type GamePhase = "ready" | "room-setup" | "role-select" | "playing" | "ended";
+export type GamePhase = "ready" | "room-setup" | "role-select" | "playing" | "level-complete" | "ended";
 export type PlayerRole = "navigator" | "guide" | null;
 export type GameMode = "create" | "join" | null;
 
@@ -12,11 +12,14 @@ interface GameState {
   roomCode: string | null;
   sharedPlayerPosition: { x: number; y: number } | null;
   playerId: string | null;
+  currentLevel: number;
   
   // Actions
   start: () => void;
   restart: () => void;
   end: () => void;
+  levelComplete: () => void;
+  nextLevel: () => void;
   setRole: (role: PlayerRole) => Promise<void>;
   selectRole: () => void;
   createGame: () => void;
@@ -24,6 +27,7 @@ interface GameState {
   setGameMode: (mode: GameMode) => void;
   updatePlayerPosition: (x: number, y: number) => void;
   initializePlayerPosition: (x: number, y: number) => Promise<void>;
+  broadcastWin: () => void;
 }
 
 // Helper to generate room codes
@@ -65,6 +69,34 @@ const loadSharedPosition = async (roomCode: string): Promise<{ x: number; y: num
   return null;
 };
 
+// Game state synchronization functions
+const updateGameState = async (roomCode: string, phase: string, currentLevel: number) => {
+  try {
+    await fetch(`/api/game-state/${roomCode}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ phase, currentLevel }),
+    });
+  } catch (error) {
+    console.error('Failed to update game state:', error);
+  }
+};
+
+const loadGameState = async (roomCode: string): Promise<{ phase: string; currentLevel: number } | null> => {
+  try {
+    const response = await fetch(`/api/game-state/${roomCode}`);
+    if (response.ok) {
+      const data = await response.json();
+      return { phase: data.phase, currentLevel: data.currentLevel };
+    }
+  } catch (error) {
+    console.error('Failed to load game state:', error);
+  }
+  return null;
+};
+
 export const useGame = create<GameState>()(
   subscribeWithSelector((set, get) => ({
     phase: "ready",
@@ -73,6 +105,7 @@ export const useGame = create<GameState>()(
     roomCode: null,
     sharedPlayerPosition: null,
     playerId: null,
+    currentLevel: 1,
     
     start: () => {
       set((state) => {
@@ -91,7 +124,8 @@ export const useGame = create<GameState>()(
         gameMode: null, 
         roomCode: null,
         sharedPlayerPosition: null,
-        playerId: null
+        playerId: null,
+        currentLevel: 1
       }));
       // Clear URL parameters
       const url = new URL(window.location.href);
@@ -107,6 +141,34 @@ export const useGame = create<GameState>()(
         }
         return {};
       });
+    },
+
+    levelComplete: () => {
+      const state = get();
+      if (state.roomCode) {
+        updateGameState(state.roomCode, "level-complete", state.currentLevel);
+      }
+      set(() => ({ phase: "level-complete" }));
+    },
+
+    nextLevel: () => {
+      set((state) => {
+        const newLevel = state.currentLevel + 1;
+        if (state.roomCode) {
+          updateGameState(state.roomCode, "playing", newLevel);
+        }
+        return { 
+          phase: "playing", 
+          currentLevel: newLevel 
+        };
+      });
+    },
+
+    broadcastWin: () => {
+      const state = get();
+      if (state.roomCode) {
+        updateGameState(state.roomCode, "level-complete", state.currentLevel);
+      }
     },
     
     setRole: async (role: PlayerRole) => {

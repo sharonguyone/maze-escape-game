@@ -2,10 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
-// Simple in-memory storage for player positions and roles
+// Simple in-memory storage for player positions, roles, and game state
 const gameRooms: Record<string, { 
   position?: { x: number; y: number; timestamp: number };
   roles?: { player1?: 'navigator' | 'guide'; player2?: 'navigator' | 'guide' };
+  gameState?: { phase: 'playing' | 'level-complete' | 'ended'; currentLevel: number; timestamp: number };
 }> = {};
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -84,6 +85,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ roles });
     } else {
       res.json({ roles: {} });
+    }
+  });
+
+  // API endpoint to update game state (level completion, win, etc.)
+  app.post('/api/game-state/:roomCode', (req, res) => {
+    const { roomCode } = req.params;
+    const { phase, currentLevel } = req.body;
+    
+    if (!gameRooms[roomCode]) {
+      gameRooms[roomCode] = {};
+    }
+    
+    gameRooms[roomCode].gameState = { 
+      phase, 
+      currentLevel: currentLevel || 1, 
+      timestamp: Date.now() 
+    };
+    
+    console.log(`Game state updated for room ${roomCode}: ${phase}, level ${currentLevel}`);
+    res.json({ success: true });
+  });
+
+  // API endpoint to get game state
+  app.get('/api/game-state/:roomCode', (req, res) => {
+    const { roomCode } = req.params;
+    const room = gameRooms[roomCode];
+    const gameState = room?.gameState;
+    
+    if (gameState) {
+      res.json(gameState);
+    } else {
+      res.json({ phase: 'playing', currentLevel: 1 });
     }
   });
 

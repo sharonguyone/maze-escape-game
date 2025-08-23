@@ -7,8 +7,8 @@ import TouchControls from "./TouchControls";
 import GameUI from "./GameUI";
 
 export default function Game() {
-  const { phase, playerRole, gameMode, roomCode, start, restart, setRole, selectRole, createGame, joinGame } = useGame();
-  const { generateSharedMaze, currentLevel } = useMaze();
+  const { phase, playerRole, gameMode, roomCode, currentLevel, start, restart, nextLevel, setRole, selectRole, createGame, joinGame } = useGame();
+  const { generateSharedMaze, currentLevel: mazeLevel } = useMaze();
   const { backgroundMusic, isMuted } = useAudio();
   const [joinCode, setJoinCode] = useState("");
 
@@ -51,8 +51,10 @@ export default function Game() {
   };
 
   const handleNextLevel = () => {
-    const { nextLevel } = useMaze.getState();
-    nextLevel(); // Increment the level first
+    // Use game store nextLevel which handles server synchronization
+    nextLevel();
+    const { nextLevel: mazeNextLevel } = useMaze.getState();
+    mazeNextLevel(); // Also increment maze level
     const newLevel = useMaze.getState().currentLevel;
     const newSize = Math.min(25, 15 + newLevel * 2); // Increase maze size each level
     generateSharedMaze(newSize, newSize);
@@ -211,31 +213,65 @@ export default function Game() {
     );
   }
 
-  if (phase === "ended") {
+  if (phase === "level-complete") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4">
         <div className="text-center mb-8">
+          <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-3xl font-bold mb-4 text-green-400">
-            🎉 Level {currentLevel} Complete!
+            Level {currentLevel} Complete!
           </h2>
-          <p className="text-lg text-gray-300 mb-4">
-            Congratulations! You've escaped the maze!
+          <p className="text-lg text-gray-300 mb-2">
+            🎯 Both Navigator and Guide succeeded!
           </p>
+          <p className="text-md text-green-300 mb-4">
+            Great teamwork! You've escaped the maze together!
+          </p>
+          <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-lg p-4 mb-6 max-w-md">
+            <p className="text-green-200 text-sm">
+              ✨ <strong>Navigator:</strong> Great navigation skills!<br />
+              🗺️ <strong>Guide:</strong> Excellent directions!
+            </p>
+          </div>
         </div>
 
         <div className="space-y-4">
           <button
             onClick={handleNextLevel}
-            className="w-64 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors"
+            className="w-64 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg"
           >
-            Next Level
+            🚀 Next Level
           </button>
           
           <button
             onClick={handleRestartGame}
             className="w-64 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors"
           >
-            Restart Game
+            🔄 Restart Game
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "ended") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold mb-4 text-green-400">
+            🎉 Game Complete!
+          </h2>
+          <p className="text-lg text-gray-300 mb-4">
+            Thanks for playing!
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <button
+            onClick={handleRestartGame}
+            className="w-64 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors"
+          >
+            Play Again
           </button>
         </div>
       </div>
