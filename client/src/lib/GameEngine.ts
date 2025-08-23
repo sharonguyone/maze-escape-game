@@ -73,11 +73,6 @@ export class GameEngine {
   };
 
   private render() {
-    // Sync player position if we're the Guide
-    if (this.playerRole === 'guide') {
-      this.syncPlayerPositionFromShared();
-    }
-
     // Clear canvas
     this.ctx.fillStyle = '#1F2937'; // Dark gray background
     this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -283,7 +278,7 @@ export class GameEngine {
       const { updatePlayerPosition } = useGame.getState();
       updatePlayerPosition(newPos.x, newPos.y);
       
-      console.log(`Navigator moved to: ${newPos.x}, ${newPos.y}`);
+      console.log(`Navigator moved to: ${newPos.x}, ${newPos.y} - sending to server`);
 
       // Check win condition
       if (newPos.x === this.endPos.x && newPos.y === this.endPos.y) {
@@ -364,16 +359,6 @@ export class GameEngine {
     }
   }
 
-  private syncPlayerPositionFromShared() {
-    const { sharedPlayerPosition } = useGame.getState();
-    if (sharedPlayerPosition) {
-      const currentPos = this.player.getPosition();
-      if (currentPos.x !== sharedPlayerPosition.x || currentPos.y !== sharedPlayerPosition.y) {
-        this.player.setPosition(sharedPlayerPosition.x, sharedPlayerPosition.y);
-        console.log(`Guide synced to: ${sharedPlayerPosition.x}, ${sharedPlayerPosition.y}`);
-      }
-    }
-  }
 
   private renderGuideIndicator() {
     if (this.playerRole === 'guide') {

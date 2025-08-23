@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(ngrok:*)",
+      "Bash(curl:*)",
+      "Bash(npx ngrok:*)",
+      "Bash(lt:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run start:*)",
+      "Bash(PORT=3001 node dist/index.js)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

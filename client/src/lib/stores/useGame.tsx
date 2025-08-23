@@ -11,18 +11,19 @@ interface GameState {
   gameMode: GameMode;
   roomCode: string | null;
   sharedPlayerPosition: { x: number; y: number } | null;
+  playerId: string | null;
   
   // Actions
   start: () => void;
   restart: () => void;
   end: () => void;
-  setRole: (role: PlayerRole) => void;
+  setRole: (role: PlayerRole) => Promise<void>;
   selectRole: () => void;
   createGame: () => void;
   joinGame: (code: string) => void;
   setGameMode: (mode: GameMode) => void;
   updatePlayerPosition: (x: number, y: number) => void;
-  initializePlayerPosition: (x: number, y: number) => void;
+  initializePlayerPosition: (x: number, y: number) => Promise<void>;
 }
 
 // Helper to generate room codes
@@ -71,6 +72,7 @@ export const useGame = create<GameState>()(
     gameMode: null,
     roomCode: null,
     sharedPlayerPosition: null,
+    playerId: null,
     
     start: () => {
       set((state) => {
@@ -88,7 +90,8 @@ export const useGame = create<GameState>()(
         playerRole: null, 
         gameMode: null, 
         roomCode: null,
-        sharedPlayerPosition: null
+        sharedPlayerPosition: null,
+        playerId: null
       }));
       // Clear URL parameters
       const url = new URL(window.location.href);
@@ -106,8 +109,34 @@ export const useGame = create<GameState>()(
       });
     },
     
-    setRole: (role: PlayerRole) => {
-      set(() => ({ playerRole: role }));
+    setRole: async (role: PlayerRole) => {
+      const state = get();
+      if (state.roomCode && state.playerId && role) {
+        try {
+          // Send role to server for automatic assignment
+          const response = await fetch(`/api/role/${state.roomCode}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ role, playerId: state.playerId }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // Get the role assigned to this player
+            const myRole = data.roles[state.playerId];
+            set(() => ({ playerRole: myRole }));
+            console.log(`Role assigned: ${myRole} (other player got ${myRole === 'navigator' ? 'guide' : 'navigator'})`);
+          }
+        } catch (error) {
+          console.error('Failed to set role:', error);
+          // Fallback to local assignment
+          set(() => ({ playerRole: role }));
+        }
+      } else {
+        set(() => ({ playerRole: role }));
+      }
     },
     
     selectRole: () => {
@@ -120,6 +149,7 @@ export const useGame = create<GameState>()(
 
     createGame: () => {
       const roomCode = generateRoomCode();
+      const playerId = 'player1'; // First player to create is player1
       // Add room code to URL
       const url = new URL(window.location.href);
       url.searchParams.set('room', roomCode);
@@ -128,11 +158,13 @@ export const useGame = create<GameState>()(
       set(() => ({ 
         phase: "room-setup", 
         gameMode: "create", 
-        roomCode 
+        roomCode,
+        playerId 
       }));
     },
 
     joinGame: (code: string) => {
+      const playerId = 'player2'; // Second player joining is player2
       // Add room code to URL
       const url = new URL(window.location.href);
       url.searchParams.set('room', code);
@@ -141,7 +173,8 @@ export const useGame = create<GameState>()(
       set(() => ({ 
         phase: "room-setup", 
         gameMode: "join", 
-        roomCode: code 
+        roomCode: code,
+        playerId 
       }));
     },
 
@@ -150,8 +183,6 @@ export const useGame = create<GameState>()(
       if (state.roomCode) {
         // Save to shared storage
         saveSharedPosition(state.roomCode, x, y);
-        // Update local state
-        set(() => ({ sharedPlayerPosition: { x, y } }));
       }
     },
 
