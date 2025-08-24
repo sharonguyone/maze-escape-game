@@ -15,50 +15,40 @@ function App() {
   useEffect(() => {
     const initializeAudio = async () => {
       try {
-        // Create atmospheric background music using Web Audio API
+        // Use real audio files from the public directory
         const bgMusic = new Audio();
-        
-        // For demo purposes, we'll use a data URL with a simple tone
-        // In production, you'd use: bgMusic.src = '/sounds/atmospheric-maze-music.mp3';
-        // Based on research from Soundimage.org - "Game Menu" style track
-        
-        // Create a simple atmospheric background track
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        // Create subtle atmospheric tones
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(220, audioContext.currentTime); // Low A note
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        // Configure background music
+        bgMusic.src = '/sounds/background.mp3';
         bgMusic.loop = true;
-        bgMusic.volume = 0.2; // Lower volume for background
+        bgMusic.volume = 0.2;
         
-        // For now, create a silent audio element that can be controlled
-        bgMusic.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMG'; // Silent audio
+        // Add error handling for mobile audio
+        const enableAudioOnInteraction = () => {
+          bgMusic.load(); // Preload the audio
+          document.removeEventListener('touchstart', enableAudioOnInteraction);
+          document.removeEventListener('click', enableAudioOnInteraction);
+        };
+        
+        // On mobile, audio needs user interaction first
+        document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
+        document.addEventListener('click', enableAudioOnInteraction, { once: true });
         
         setBackgroundMusic(bgMusic);
 
-        // Load sound effects (these would use actual audio files)
+        // Load sound effects using actual audio files
         const hitSound = new Audio();
-        hitSound.volume = 0.5;
-        hitSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMG';
+        hitSound.src = '/sounds/hit.mp3';
+        hitSound.volume = 0.3;
         setHitSound(hitSound);
 
         const successSound = new Audio();
-        successSound.volume = 0.7;
-        successSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMG';
+        successSound.src = '/sounds/success.mp3';
+        successSound.volume = 0.5;
         setSuccessSound(successSound);
 
-        // Partner joined notification sound (higher pitched beep)
+        // Partner joined notification - use the success sound with different volume
         const partnerJoinedSound = new Audio();
-        partnerJoinedSound.volume = 0.5;
-        partnerJoinedSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMG';
+        partnerJoinedSound.src = '/sounds/success.mp3';
+        partnerJoinedSound.volume = 0.4;
         setPartnerJoinedSound(partnerJoinedSound);
 
         setIsInitialized(true);

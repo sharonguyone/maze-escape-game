@@ -59,6 +59,7 @@ This is a full-stack TypeScript maze game application with cooperative multiplay
 - **Database**: PostgreSQL via Drizzle ORM (configured but minimal usage)
 - **Build**: Vite with custom configuration for assets (GLTF, GLSL, audio files)
 - **UI**: Radix UI primitives with Tailwind CSS
+- **Deployment**: Render (auto-deploys from main branch on GitHub)
 
 ### Path Aliases
 - `@/` → `client/src/`
@@ -67,6 +68,21 @@ This is a full-stack TypeScript maze game application with cooperative multiplay
 ### Asset Pipeline
 - Supports GLTF/GLB 3D models, MP3/OGG/WAV audio, GLSL shaders
 - Public assets in `client/public/` including fonts, textures, geometries, sounds
+
+## Deployment
+
+### Render Configuration
+- **Platform**: Render (render.com)
+- **Auto-deployment**: Configured to deploy automatically from the main branch on GitHub
+- **Build Command**: `npm run build` (builds client assets and server bundle)
+- **Start Command**: `npm start` (runs `node dist/index.js`)
+- **Environment**: Production builds are optimized and bundled
+
+### Deployment Process
+1. Push changes to main branch on GitHub
+2. Render automatically triggers deployment
+3. Runs build process (Vite + esbuild)
+4. Serves production application
 
 ## Development Notes
 

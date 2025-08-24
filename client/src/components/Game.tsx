@@ -172,6 +172,50 @@ export default function Game() {
     }
   }, [phase, roomCode, playerRole, start, markPlayerReady]);
 
+  // Handle role switching synchronization for non-creators during level-complete phase
+  useEffect(() => {
+    if (phase === "level-complete" && roomCode && !isCreator) {
+      const interval = window.setInterval(async () => {
+        try {
+          // Check for role updates
+          const roleResponse = await fetch(`/api/role/${roomCode}`);
+          if (roleResponse.ok) {
+            const roleData = await roleResponse.json();
+            const { playerId } = useGame.getState();
+            const serverRole = playerId ? roleData.roles[playerId] : null;
+            
+            if (serverRole && serverRole !== playerRole) {
+              console.log(`Role switched: ${playerRole} → ${serverRole}`);
+              useGame.setState({ playerRole: serverRole });
+            }
+          }
+          
+          // Check if game state changed to playing (next level started)
+          const gameStateResponse = await fetch(`/api/game-state/${roomCode}`);
+          if (gameStateResponse.ok) {
+            const gameStateData = await gameStateResponse.json();
+            const currentPhase = useGame.getState().phase;
+            
+            if (gameStateData.phase === 'playing' && currentPhase === 'level-complete') {
+              console.log('Partner started next level - transitioning to playing phase');
+              // Update current level and start game
+              useGame.setState({ currentLevel: gameStateData.currentLevel });
+              const { nextLevel: mazeNextLevel } = useMaze.getState();
+              mazeNextLevel();
+              const newSize = Math.min(25, 15 + gameStateData.currentLevel * 2);
+              generateSharedMaze(newSize, newSize);
+              start();
+            }
+          }
+        } catch (error) {
+          console.error('Failed to sync level progression:', error);
+        }
+      }, 1000); // Poll every second
+      
+      return () => clearInterval(interval);
+    }
+  }, [phase, roomCode, isCreator, playerRole, start, generateSharedMaze]);
+
   const handleStartGame = () => {
     selectRole();
   };
@@ -552,8 +596,8 @@ export default function Game() {
             </button>
             
             <button
-              onClick={() => {
-                switchRoles();
+              onClick={async () => {
+                await switchRoles();
                 handleNextLevel();
               }}
               className="w-64 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg"

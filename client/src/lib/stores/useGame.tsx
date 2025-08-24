@@ -200,7 +200,13 @@ export const useGame = create<GameState>()(
             // Update local role based on server response
             const myRole = state.playerId ? data.roles[state.playerId] : null;
             set(() => ({ playerRole: myRole }));
+            
+            // Update game state to indicate roles have switched
+            await updateGameState(state.roomCode, 'role-switch', state.currentLevel);
             console.log('Roles switched successfully');
+            
+            // Wait a moment for partner to receive the role update
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         } catch (error) {
           console.error('Failed to switch roles:', error);
