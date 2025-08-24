@@ -4,6 +4,7 @@ interface AudioState {
   backgroundMusic: HTMLAudioElement | null;
   hitSound: HTMLAudioElement | null;
   successSound: HTMLAudioElement | null;
+  partnerJoinedSound: HTMLAudioElement | null;
   isMuted: boolean;
   isMusicPlaying: boolean;
   
@@ -11,6 +12,7 @@ interface AudioState {
   setBackgroundMusic: (music: HTMLAudioElement) => void;
   setHitSound: (sound: HTMLAudioElement) => void;
   setSuccessSound: (sound: HTMLAudioElement) => void;
+  setPartnerJoinedSound: (sound: HTMLAudioElement) => void;
   
   // Control functions
   toggleMute: () => void;
@@ -18,18 +20,21 @@ interface AudioState {
   pauseBackgroundMusic: () => void;
   playHit: () => void;
   playSuccess: () => void;
+  playPartnerJoined: () => void;
 }
 
 export const useAudio = create<AudioState>((set, get) => ({
   backgroundMusic: null,
   hitSound: null,
   successSound: null,
+  partnerJoinedSound: null,
   isMuted: true, // Start muted by default
   isMusicPlaying: false,
   
   setBackgroundMusic: (music) => set({ backgroundMusic: music }),
   setHitSound: (sound) => set({ hitSound: sound }),
   setSuccessSound: (sound) => set({ successSound: sound }),
+  setPartnerJoinedSound: (sound) => set({ partnerJoinedSound: sound }),
   
   toggleMute: () => {
     const { isMuted, backgroundMusic } = get();
@@ -106,6 +111,22 @@ export const useAudio = create<AudioState>((set, get) => ({
       successSound.currentTime = 0;
       successSound.play().catch(error => {
         console.log("Success sound play prevented:", error);
+      });
+    }
+  },
+  
+  playPartnerJoined: () => {
+    const { partnerJoinedSound, isMuted } = get();
+    if (partnerJoinedSound) {
+      // If sound is muted, don't play anything
+      if (isMuted) {
+        console.log("Partner joined sound skipped (muted)");
+        return;
+      }
+      
+      partnerJoinedSound.currentTime = 0;
+      partnerJoinedSound.play().catch(error => {
+        console.log("Partner joined sound play prevented:", error);
       });
     }
   }

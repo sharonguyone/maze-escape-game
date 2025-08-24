@@ -8,7 +8,7 @@ import "@fontsource/inter";
 function App() {
   const isMobile = useIsMobile();
   const { phase } = useGame();
-  const { setBackgroundMusic, setHitSound, setSuccessSound } = useAudio();
+  const { setBackgroundMusic, setHitSound, setSuccessSound, setPartnerJoinedSound } = useAudio();
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize audio assets
@@ -55,6 +55,12 @@ function App() {
         successSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMG';
         setSuccessSound(successSound);
 
+        // Partner joined notification sound (higher pitched beep)
+        const partnerJoinedSound = new Audio();
+        partnerJoinedSound.volume = 0.5;
+        partnerJoinedSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMGJHfH8N2QQAoUXrTp66hVFApGn+DyvmsmCCuTyvLZfDMG';
+        setPartnerJoinedSound(partnerJoinedSound);
+
         setIsInitialized(true);
         console.log('Audio system initialized (demo mode)');
         console.log('🎵 Music: Atmospheric puzzle game background music');
@@ -66,7 +72,7 @@ function App() {
     };
 
     initializeAudio();
-  }, [setBackgroundMusic, setHitSound, setSuccessSound]);
+  }, [setBackgroundMusic, setHitSound, setSuccessSound, setPartnerJoinedSound]);
 
   if (!isInitialized) {
     return (

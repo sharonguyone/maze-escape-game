@@ -7,6 +7,7 @@ const gameRooms: Record<string, {
   position?: { x: number; y: number; timestamp: number };
   roles?: { player1?: 'navigator' | 'guide'; player2?: 'navigator' | 'guide' };
   gameState?: { phase: 'playing' | 'level-complete' | 'ended'; currentLevel: number; timestamp: number };
+  players?: { player1?: boolean; player2?: boolean; timestamp: number };
 }> = {};
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -138,6 +139,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       res.json({ phase: 'playing', currentLevel: 1 });
     }
+  });
+
+  // API endpoint to join room (register player presence)
+  app.post('/api/join/:roomCode', (req, res) => {
+    const { roomCode } = req.params;
+    const { playerId } = req.body;
+    
+    if (!gameRooms[roomCode]) {
+      gameRooms[roomCode] = {};
+    }
+    if (!gameRooms[roomCode].players) {
+      gameRooms[roomCode].players = { timestamp: Date.now() };
+    }
+    
+    const players = gameRooms[roomCode].players!;
+    if (playerId === 'player1' || playerId === 'player2') {
+      players[playerId] = true;
+      players.timestamp = Date.now();
+      
+      const bothPlayersJoined = players.player1 && players.player2;
+      console.log(`Player ${playerId} joined room ${roomCode}. Both players: ${bothPlayersJoined}`);
+      
+      res.json({ 
+        success: true, 
+        bothPlayersJoined,
+        players: { player1: !!players.player1, player2: !!players.player2 }
+      });
+    } else {
+      res.status(400).json({ error: 'Invalid player ID' });
+    }
+  });
+
+  // API endpoint to get room status
+  app.get('/api/room-status/:roomCode', (req, res) => {
+    const { roomCode } = req.params;
+    const room = gameRooms[roomCode];
+    
+    if (!room) {
+      res.json({ 
+        exists: false, 
+        bothPlayersJoined: false,
+        players: { player1: false, player2: false }
+      });
+      return;
+    }
+    
+    const players = room.players || {};
+    const bothPlayersJoined = !!players.player1 && !!players.player2;
+    
+    res.json({ 
+      exists: true,
+      bothPlayersJoined,
+      players: { player1: !!players.player1, player2: !!players.player2 }
+    });
   });
 
   const httpServer = createServer(app);

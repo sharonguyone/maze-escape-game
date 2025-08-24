@@ -7,11 +7,12 @@ import TouchControls from "./TouchControls";
 import GameUI from "./GameUI";
 
 export default function Game() {
-  const { phase, playerRole, gameMode, roomCode, currentLevel, isCreator, start, restart, nextLevel, switchRoles, setCreatorRole, selectRole, createGame, joinGame } = useGame();
+  const { phase, playerRole, gameMode, roomCode, currentLevel, isCreator, partnerJoined, bothPlayersReady, start, restart, nextLevel, switchRoles, setCreatorRole, selectRole, createGame, joinGame, registerPlayerJoin } = useGame();
   const { generateSharedMaze, currentLevel: mazeLevel } = useMaze();
-  const { backgroundMusic, isMuted, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
+  const { backgroundMusic, isMuted, playBackgroundMusic, pauseBackgroundMusic, playPartnerJoined } = useAudio();
   const [joinCode, setJoinCode] = useState("");
   const [roleSyncInterval, setRoleSyncInterval] = useState<number | null>(null);
+  const [partnerJoinCheckInterval, setPartnerJoinCheckInterval] = useState<number | null>(null);
 
   // Check for existing room code in URL when component mounts
   useEffect(() => {
@@ -30,6 +31,56 @@ export default function Game() {
       generateSharedMaze(15, 15); // Start with a 15x15 SHARED maze
     }
   }, [phase, roomCode, generateSharedMaze]);
+
+  // Register player join and monitor for partner joining
+  useEffect(() => {
+    if (phase === "room-setup" && roomCode) {
+      // Register this player's join immediately
+      registerPlayerJoin();
+      
+      // Start polling for partner join status
+      const interval = window.setInterval(async () => {
+        try {
+          const response = await fetch(`/api/room-status/${roomCode}`);
+          if (response.ok) {
+            const data = await response.json();
+            const state = useGame.getState();
+            
+            if (data.bothPlayersJoined && !state.partnerJoined) {
+              // Partner just joined! Play notification sound for creator
+              if (state.isCreator) {
+                playPartnerJoined();
+                console.log("🎉 Partner joined the room!");
+              }
+              
+              // Update state to reflect both players joined
+              useGame.setState({ 
+                partnerJoined: true,
+                bothPlayersReady: true 
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to check room status:', error);
+        }
+      }, 1000); // Poll every second
+      
+      setPartnerJoinCheckInterval(interval);
+      
+      return () => {
+        if (interval) {
+          clearInterval(interval);
+          setPartnerJoinCheckInterval(null);
+        }
+      };
+    } else {
+      // Clean up interval if not needed
+      if (partnerJoinCheckInterval) {
+        clearInterval(partnerJoinCheckInterval);
+        setPartnerJoinCheckInterval(null);
+      }
+    }
+  }, [phase, roomCode, registerPlayerJoin, playPartnerJoined, isCreator, partnerJoined]);
 
   // Handle background music during gameplay
   useEffect(() => {
@@ -173,9 +224,35 @@ export default function Game() {
               >
                 Copy Link
               </button>
-              <p className="text-gray-400 text-sm">
-                Once your partner joins, you can select roles
-              </p>
+              
+              {!partnerJoined ? (
+                <div className="mt-4">
+                  <div className="text-2xl mb-2">⏳</div>
+                  <p className="text-yellow-300 font-semibold">
+                    Waiting for partner to join...
+                  </p>
+                  <div className="animate-pulse mt-2">
+                    <div className="flex justify-center space-x-2">
+                      <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <div className="text-2xl mb-2">🎉</div>
+                  <p className="text-green-300 font-semibold mb-4">
+                    Partner has joined the room!
+                  </p>
+                  <button 
+                    onClick={selectRole}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors"
+                  >
+                    SELECT ROLES
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-gray-800 p-6 rounded-lg mb-6">
@@ -183,17 +260,21 @@ export default function Game() {
               <div className="text-4xl font-bold text-green-400 mb-4 tracking-widest">
                 {roomCode}
               </div>
-              <p className="text-gray-400 text-sm">
-                Ready to select roles!
-              </p>
+              <div className="mt-4">
+                <div className="text-2xl mb-2">⏳</div>
+                <p className="text-yellow-300 font-semibold">
+                  Waiting for room creator to select roles...
+                </p>
+                <div className="animate-pulse mt-2">
+                  <div className="flex justify-center space-x-2">
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
-          <button 
-            onClick={selectRole}
-            className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors"
-          >
-            SELECT ROLES
-          </button>
         </div>
       </div>
     );
@@ -272,39 +353,74 @@ export default function Game() {
         </div>
       );
     } else {
-      // Non-creator waits for role assignment
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-4">⏳</div>
-            <h2 className="text-2xl font-bold mb-2 text-yellow-400">Waiting for Role Assignment</h2>
-            <p className="text-md text-gray-300 mb-4">
-              The room creator is choosing roles...
-            </p>
-            <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 mb-4 max-w-md">
-              <p className="text-sm text-yellow-200">
-                🎭 <strong>Your partner will assign your role</strong><br/>
-                You'll automatically start once roles are chosen
+      // Non-creator waits for role assignment or shows assigned role
+      if (playerRole) {
+        // Role has been assigned, show confirmation
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-4">🎭</div>
+              <h2 className="text-2xl font-bold mb-4 text-green-400">Role Assigned!</h2>
+              <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-lg p-4 mb-4 max-w-md">
+                <p className="text-lg text-green-200 mb-2">
+                  <strong>You are the {playerRole === 'navigator' ? '🕹️ Navigator' : '🗺️ Guide'}!</strong>
+                </p>
+                <p className="text-sm text-green-300">
+                  {playerRole === 'navigator' 
+                    ? 'Control movement with limited visibility. Follow your guide\'s directions!'
+                    : 'You can see the full maze. Help guide the Navigator to the exit!'
+                  }
+                </p>
+              </div>
+              <div className="text-2xl mb-2">🚀</div>
+              <p className="text-lg text-gray-300">
+                Starting game now...
               </p>
+              <div className="animate-pulse mt-2">
+                <div className="flex justify-center space-x-2">
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div className="animate-pulse">
-            <div className="flex space-x-2">
-              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+        );
+      } else {
+        // Still waiting for role assignment
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-4">⏳</div>
+              <h2 className="text-2xl font-bold mb-2 text-yellow-400">Waiting for Role Assignment</h2>
+              <p className="text-md text-gray-300 mb-4">
+                The room creator is choosing roles...
+              </p>
+              <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 mb-4 max-w-md">
+                <p className="text-sm text-yellow-200">
+                  🎭 <strong>Your partner will assign your role</strong><br/>
+                  You'll automatically start once roles are chosen
+                </p>
+              </div>
             </div>
-          </div>
+            
+            <div className="animate-pulse">
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+              </div>
+            </div>
 
-          <button
-            onClick={() => restart()}
-            className="mt-6 text-gray-400 hover:text-white transition-colors underline text-sm"
-          >
-            ← Back to Main Menu
-          </button>
-        </div>
-      );
+            <button
+              onClick={() => restart()}
+              className="mt-6 text-gray-400 hover:text-white transition-colors underline text-sm"
+            >
+              ← Back to Main Menu
+            </button>
+          </div>
+        );
+      }
     }
   }
 

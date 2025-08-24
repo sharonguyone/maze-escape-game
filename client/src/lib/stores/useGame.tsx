@@ -14,6 +14,8 @@ interface GameState {
   playerId: string | null;
   currentLevel: number;
   isCreator: boolean;
+  partnerJoined: boolean;
+  bothPlayersReady: boolean;
   
   // Actions
   start: () => void;
@@ -31,6 +33,7 @@ interface GameState {
   updatePlayerPosition: (x: number, y: number) => void;
   initializePlayerPosition: (x: number, y: number) => Promise<void>;
   broadcastWin: () => void;
+  registerPlayerJoin: () => Promise<void>;
 }
 
 // Helper to generate room codes
@@ -110,6 +113,8 @@ export const useGame = create<GameState>()(
     playerId: null,
     currentLevel: 1,
     isCreator: false,
+    partnerJoined: false,
+    bothPlayersReady: false,
     
     start: () => {
       set((state) => {
@@ -130,7 +135,9 @@ export const useGame = create<GameState>()(
         sharedPlayerPosition: null,
         playerId: null,
         currentLevel: 1,
-        isCreator: false
+        isCreator: false,
+        partnerJoined: false,
+        bothPlayersReady: false
       }));
       // Clear URL parameters
       const url = new URL(window.location.href);
@@ -321,6 +328,33 @@ export const useGame = create<GameState>()(
           set(() => ({ sharedPlayerPosition: { x, y } }));
         }
       }
+    },
+
+    registerPlayerJoin: async () => {
+      const state = get();
+      if (state.roomCode && state.playerId) {
+        try {
+          const response = await fetch(`/api/join/${state.roomCode}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ playerId: state.playerId }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            set(() => ({ 
+              partnerJoined: data.bothPlayersJoined,
+              bothPlayersReady: data.bothPlayersJoined 
+            }));
+            return data.bothPlayersJoined;
+          }
+        } catch (error) {
+          console.error('Failed to register player join:', error);
+        }
+      }
+      return false;
     }
   }))
 );
