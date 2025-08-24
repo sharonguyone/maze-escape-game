@@ -34,6 +34,7 @@ interface GameState {
   initializePlayerPosition: (x: number, y: number) => Promise<void>;
   broadcastWin: () => void;
   registerPlayerJoin: () => Promise<void>;
+  markPlayerReady: () => Promise<boolean>;
 }
 
 // Helper to generate room codes
@@ -197,7 +198,7 @@ export const useGame = create<GameState>()(
           if (response.ok) {
             const data = await response.json();
             // Update local role based on server response
-            const myRole = data.roles[state.playerId];
+            const myRole = state.playerId ? data.roles[state.playerId] : null;
             set(() => ({ playerRole: myRole }));
             console.log('Roles switched successfully');
           }
@@ -221,12 +222,11 @@ export const useGame = create<GameState>()(
           
           if (response.ok) {
             const data = await response.json();
-            const myRole = data.roles[state.playerId];
+            const myRole = state.playerId ? data.roles[state.playerId] : null;
             set(() => ({ playerRole: myRole }));
             
-            // Update game state to playing so both players start
-            await updateGameState(state.roomCode, "playing", state.currentLevel);
-            
+            // Don't automatically start the game - let the synchronization polling handle it
+            // This ensures both players have their roles before the game starts
             console.log(`Creator assigned roles: ${myRole} (partner gets ${myRole === 'navigator' ? 'guide' : 'navigator'})`);
           }
         } catch (error) {
@@ -252,7 +252,7 @@ export const useGame = create<GameState>()(
           if (response.ok) {
             const data = await response.json();
             // Get the role assigned to this player
-            const myRole = data.roles[state.playerId];
+            const myRole = state.playerId ? data.roles[state.playerId] : null;
             set(() => ({ playerRole: myRole }));
             console.log(`Role assigned: ${myRole} (other player got ${myRole === 'navigator' ? 'guide' : 'navigator'})`);
           }
@@ -352,6 +352,30 @@ export const useGame = create<GameState>()(
           }
         } catch (error) {
           console.error('Failed to register player join:', error);
+        }
+      }
+      return false;
+    },
+
+    markPlayerReady: async () => {
+      const state = get();
+      if (state.roomCode && state.playerId) {
+        try {
+          const response = await fetch(`/api/player-ready/${state.roomCode}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ playerId: state.playerId }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`Player ${state.playerId} marked as ready. Both players ready: ${data.bothPlayersReady}`);
+            return data.bothPlayersReady;
+          }
+        } catch (error) {
+          console.error('Failed to mark player as ready:', error);
         }
       }
       return false;

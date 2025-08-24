@@ -7,12 +7,13 @@ import TouchControls from "./TouchControls";
 import GameUI from "./GameUI";
 
 export default function Game() {
-  const { phase, playerRole, gameMode, roomCode, currentLevel, isCreator, partnerJoined, bothPlayersReady, start, restart, nextLevel, switchRoles, setCreatorRole, selectRole, createGame, joinGame, registerPlayerJoin } = useGame();
+  const { phase, playerRole, gameMode, roomCode, currentLevel, isCreator, partnerJoined, bothPlayersReady, start, restart, nextLevel, switchRoles, setCreatorRole, selectRole, createGame, joinGame, registerPlayerJoin, markPlayerReady } = useGame();
   const { generateSharedMaze, currentLevel: mazeLevel } = useMaze();
   const { backgroundMusic, isMuted, playBackgroundMusic, pauseBackgroundMusic, playPartnerJoined } = useAudio();
   const [joinCode, setJoinCode] = useState("");
   const [roleSyncInterval, setRoleSyncInterval] = useState<number | null>(null);
   const [partnerJoinCheckInterval, setPartnerJoinCheckInterval] = useState<number | null>(null);
+  const [bothPlayersConfirmedReady, setBothPlayersConfirmedReady] = useState(false);
 
   // Check for existing room code in URL when component mounts
   useEffect(() => {
@@ -59,6 +60,20 @@ export default function Game() {
                 bothPlayersReady: true 
               });
             }
+            
+            // For non-creators: Check if creator has started role selection
+            if (!state.isCreator && data.bothPlayersJoined) {
+              // Check if roles are being assigned (creator entered role-select phase)
+              const roleResponse = await fetch(`/api/role/${roomCode}`);
+              if (roleResponse.ok) {
+                const roleData = await roleResponse.json();
+                // If there are any roles assigned, creator has started role selection
+                if (roleData.roles && (roleData.roles.player1 || roleData.roles.player2)) {
+                  console.log("Creator started role selection - transitioning to role-select phase");
+                  selectRole(); // Transition partner to role-select phase
+                }
+              }
+            }
           }
         } catch (error) {
           console.error('Failed to check room status:', error);
@@ -80,7 +95,7 @@ export default function Game() {
         setPartnerJoinCheckInterval(null);
       }
     }
-  }, [phase, roomCode, registerPlayerJoin, playPartnerJoined, isCreator, partnerJoined]);
+  }, [phase, roomCode, registerPlayerJoin, playPartnerJoined, isCreator, partnerJoined, selectRole]);
 
   // Handle background music during gameplay
   useEffect(() => {
@@ -91,27 +106,37 @@ export default function Game() {
     }
   }, [phase, isMuted, playBackgroundMusic, pauseBackgroundMusic]);
 
-  // Role and game state synchronization during role-select phase
+  // Role assignment and ready confirmation synchronization during role-select phase
   useEffect(() => {
     if (phase === "role-select" && roomCode) {
-      // Start polling for role assignment and game state changes
+      // Start polling for role assignment and ready status
       const interval = window.setInterval(async () => {
         try {
-          // Check for role changes (for both creators and non-creators)
+          // Check for role assignment
           const roleResponse = await fetch(`/api/role/${roomCode}`);
           if (roleResponse.ok) {
             const roleData = await roleResponse.json();
             const { playerId } = useGame.getState();
-            const assignedRole = roleData.roles[playerId];
+            const assignedRole = playerId ? roleData.roles[playerId] : null;
             
             if (assignedRole && assignedRole !== playerRole) {
-              // Role was assigned
+              // Role was assigned - update local state and mark as ready
               useGame.setState({ playerRole: assignedRole });
               console.log(`Role assigned: ${assignedRole}`);
+              
+              // Mark this player as ready after receiving role
+              try {
+                const bothReady = await markPlayerReady();
+                console.log(`Player marked as ready. Both players ready: ${bothReady}`);
+                setBothPlayersConfirmedReady(bothReady === true);
+              } catch (error) {
+                console.error('Error marking player ready:', error);
+                setBothPlayersConfirmedReady(false);
+              }
             }
           }
           
-          // Check for game state changes (for both players)
+          // Check if game has started (both players marked ready)
           const gameStateResponse = await fetch(`/api/game-state/${roomCode}`);
           if (gameStateResponse.ok) {
             const gameStateData = await gameStateResponse.json();
@@ -119,24 +144,23 @@ export default function Game() {
             const currentPlayerRole = useGame.getState().playerRole;
             
             if (gameStateData.phase === 'playing' && currentPhase === 'role-select' && currentPlayerRole) {
-              // Game started and player has role - transition to playing
-              console.log('Both players have roles, starting game');
+              console.log('Both players ready - starting game simultaneously');
               start();
             }
           }
         } catch (error) {
-          console.error('Failed to sync role/game state:', error);
+          console.error('Failed to sync role/ready state:', error);
         }
       }, 1000); // Poll every second
       
       setRoleSyncInterval(interval);
-      console.log('Started role/game state sync');
+      console.log('Started role/ready state sync');
       
       return () => {
         if (interval) {
           clearInterval(interval);
           setRoleSyncInterval(null);
-          console.log('Stopped role/game state sync');
+          console.log('Stopped role/ready state sync');
         }
       };
     } else {
@@ -146,7 +170,7 @@ export default function Game() {
         setRoleSyncInterval(null);
       }
     }
-  }, [phase, isCreator, roomCode, playerRole, start]);
+  }, [phase, roomCode, playerRole, start, markPlayerReady]);
 
   const handleStartGame = () => {
     selectRole();
@@ -303,13 +327,27 @@ export default function Game() {
                   }
                 </p>
               </div>
-              <div className="text-2xl mb-2">⏳</div>
-              <p className="text-lg text-gray-300 mb-2">
-                Syncing with partner...
-              </p>
-              <p className="text-sm text-gray-400">
-                Both players will start together
-              </p>
+              {bothPlayersConfirmedReady ? (
+                <>
+                  <div className="text-2xl mb-2">🚀</div>
+                  <p className="text-lg text-gray-300 mb-2">
+                    Both players ready! Starting game...
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Game starting in moments
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl mb-2">✅</div>
+                  <p className="text-lg text-gray-300 mb-2">
+                    Role confirmed! Waiting for partner...
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Game will start when both players are ready
+                  </p>
+                </>
+              )}
               <div className="animate-pulse mt-2">
                 <div className="flex justify-center space-x-2">
                   <div className="w-3 h-3 bg-green-400 rounded-full"></div>
@@ -406,10 +444,27 @@ export default function Game() {
                   }
                 </p>
               </div>
-              <div className="text-2xl mb-2">🚀</div>
-              <p className="text-lg text-gray-300">
-                Starting game now...
-              </p>
+              {bothPlayersConfirmedReady ? (
+                <>
+                  <div className="text-2xl mb-2">🚀</div>
+                  <p className="text-lg text-gray-300 mb-2">
+                    Both players ready! Starting game...
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Game starting in moments
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl mb-2">✅</div>
+                  <p className="text-lg text-gray-300 mb-2">
+                    Role confirmed! Waiting for partner...
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Game will start when both players are ready
+                  </p>
+                </>
+              )}
               <div className="animate-pulse mt-2">
                 <div className="flex justify-center space-x-2">
                   <div className="w-3 h-3 bg-green-400 rounded-full"></div>
