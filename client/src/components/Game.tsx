@@ -97,19 +97,17 @@ export default function Game() {
       // Start polling for role assignment and game state changes
       const interval = window.setInterval(async () => {
         try {
-          // Check for role changes (for non-creators)
-          if (!isCreator) {
-            const roleResponse = await fetch(`/api/role/${roomCode}`);
-            if (roleResponse.ok) {
-              const roleData = await roleResponse.json();
-              const { playerId } = useGame.getState();
-              const assignedRole = roleData.roles[playerId];
-              
-              if (assignedRole && assignedRole !== playerRole) {
-                // Role was assigned by creator
-                useGame.setState({ playerRole: assignedRole });
-                console.log(`Role assigned by creator: ${assignedRole}`);
-              }
+          // Check for role changes (for both creators and non-creators)
+          const roleResponse = await fetch(`/api/role/${roomCode}`);
+          if (roleResponse.ok) {
+            const roleData = await roleResponse.json();
+            const { playerId } = useGame.getState();
+            const assignedRole = roleData.roles[playerId];
+            
+            if (assignedRole && assignedRole !== playerRole) {
+              // Role was assigned
+              useGame.setState({ playerRole: assignedRole });
+              console.log(`Role assigned: ${assignedRole}`);
             }
           }
           
@@ -118,10 +116,11 @@ export default function Game() {
           if (gameStateResponse.ok) {
             const gameStateData = await gameStateResponse.json();
             const currentPhase = useGame.getState().phase;
+            const currentPlayerRole = useGame.getState().playerRole;
             
-            if (gameStateData.phase === 'playing' && currentPhase === 'role-select') {
-              // Game started by creator
-              console.log('Game started by creator, transitioning to playing phase');
+            if (gameStateData.phase === 'playing' && currentPhase === 'role-select' && currentPlayerRole) {
+              // Game started and player has role - transition to playing
+              console.log('Both players have roles, starting game');
               start();
             }
           }
@@ -283,20 +282,60 @@ export default function Game() {
   if (phase === "role-select") {
     if (isCreator) {
       // Creator selects roles for both players
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-2 text-blue-400">👑 Choose Roles</h2>
-            <p className="text-sm text-gray-300 mb-3">
-              As the room creator, you choose which role you'll play
-            </p>
-            <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-2 mb-4 max-w-md">
-              <p className="text-xs text-blue-200">
-                👑 <strong>You are the room creator</strong><br/>
-                Your partner will automatically get the other role
+      if (playerRole) {
+        // Creator has selected role, waiting for partner sync
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-4">🎭</div>
+              <h2 className="text-2xl font-bold mb-4 text-green-400">Roles Assigned!</h2>
+              <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-lg p-4 mb-4 max-w-md">
+                <p className="text-lg text-green-200 mb-2">
+                  <strong>You are the {playerRole === 'navigator' ? '🕹️ Navigator' : '🗺️ Guide'}!</strong>
+                </p>
+                <p className="text-sm text-green-300 mb-2">
+                  Your partner is the {playerRole === 'navigator' ? '🗺️ Guide' : '🕹️ Navigator'}
+                </p>
+                <p className="text-sm text-green-300">
+                  {playerRole === 'navigator' 
+                    ? 'Control movement with limited visibility. Follow your guide\'s directions!'
+                    : 'You can see the full maze. Help guide the Navigator to the exit!'
+                  }
+                </p>
+              </div>
+              <div className="text-2xl mb-2">⏳</div>
+              <p className="text-lg text-gray-300 mb-2">
+                Syncing with partner...
               </p>
+              <p className="text-sm text-gray-400">
+                Both players will start together
+              </p>
+              <div className="animate-pulse mt-2">
+                <div className="flex justify-center space-x-2">
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                </div>
+              </div>
             </div>
           </div>
+        );
+      } else {
+        // Creator hasn't selected role yet
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-2 text-blue-400">👑 Choose Roles</h2>
+              <p className="text-sm text-gray-300 mb-3">
+                As the room creator, you choose which role you'll play
+              </p>
+              <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-2 mb-4 max-w-md">
+                <p className="text-xs text-blue-200">
+                  👑 <strong>You are the room creator</strong><br/>
+                  Your partner will automatically get the other role
+                </p>
+              </div>
+            </div>
 
           <div className="grid grid-cols-2 gap-3 max-w-md w-full mb-4">
             {/* Navigator Role */}
@@ -311,10 +350,7 @@ export default function Game() {
                 <li>• Follow directions</li>
               </ul>
               <button
-                onClick={() => {
-                  setCreatorRole('navigator');
-                  start();
-                }}
+                onClick={() => setCreatorRole('navigator')}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
               >
                 I'll Navigate!
@@ -333,10 +369,7 @@ export default function Game() {
                 <li>• Give directions</li>
               </ul>
               <button
-                onClick={() => {
-                  setCreatorRole('guide');
-                  start();
-                }}
+                onClick={() => setCreatorRole('guide')}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-2 rounded-lg transition-colors text-sm"
               >
                 I'll Guide!
@@ -344,14 +377,15 @@ export default function Game() {
             </div>
           </div>
 
-          <button
-            onClick={() => restart()}
-            className="text-gray-400 hover:text-white transition-colors underline text-sm"
-          >
-            ← Back to Main Menu
-          </button>
-        </div>
-      );
+            <button
+              onClick={() => restart()}
+              className="text-gray-400 hover:text-white transition-colors underline text-sm"
+            >
+              ← Back to Main Menu
+            </button>
+          </div>
+        );
+      }
     } else {
       // Non-creator waits for role assignment or shows assigned role
       if (playerRole) {
