@@ -1,7 +1,9 @@
 import { create } from "zustand";
 
 interface AudioState {
-  backgroundMusic: HTMLAudioElement | null;
+  navigatorMusic: HTMLAudioElement | null;
+  guideMusic: HTMLAudioElement | null;
+  currentMusic: HTMLAudioElement | null;
   hitSound: HTMLAudioElement | null;
   successSound: HTMLAudioElement | null;
   partnerJoinedSound: HTMLAudioElement | null;
@@ -9,14 +11,15 @@ interface AudioState {
   isMusicPlaying: boolean;
   
   // Setter functions
-  setBackgroundMusic: (music: HTMLAudioElement) => void;
+  setNavigatorMusic: (music: HTMLAudioElement) => void;
+  setGuideMusic: (music: HTMLAudioElement) => void;
   setHitSound: (sound: HTMLAudioElement) => void;
   setSuccessSound: (sound: HTMLAudioElement) => void;
   setPartnerJoinedSound: (sound: HTMLAudioElement) => void;
   
   // Control functions
   toggleMute: () => void;
-  playBackgroundMusic: () => void;
+  playRoleMusic: (role: 'navigator' | 'guide' | null) => void;
   pauseBackgroundMusic: () => void;
   playHit: () => void;
   playSuccess: () => void;
@@ -24,35 +27,38 @@ interface AudioState {
 }
 
 export const useAudio = create<AudioState>((set, get) => ({
-  backgroundMusic: null,
+  navigatorMusic: null,
+  guideMusic: null,
+  currentMusic: null,
   hitSound: null,
   successSound: null,
   partnerJoinedSound: null,
   isMuted: true, // Start muted by default
   isMusicPlaying: false,
   
-  setBackgroundMusic: (music) => set({ backgroundMusic: music }),
+  setNavigatorMusic: (music) => set({ navigatorMusic: music }),
+  setGuideMusic: (music) => set({ guideMusic: music }),
   setHitSound: (sound) => set({ hitSound: sound }),
   setSuccessSound: (sound) => set({ successSound: sound }),
   setPartnerJoinedSound: (sound) => set({ partnerJoinedSound: sound }),
   
   toggleMute: () => {
-    const { isMuted, backgroundMusic } = get();
+    const { isMuted, currentMusic } = get();
     const newMutedState = !isMuted;
     
     // Update the muted state
     set({ isMuted: newMutedState });
     
     // Control background music based on mute state
-    if (backgroundMusic) {
+    if (currentMusic) {
       if (newMutedState) {
-        backgroundMusic.pause();
+        currentMusic.pause();
         set({ isMusicPlaying: false });
       } else {
         // Only play if we're in a playing phase
         const { phase } = (window as any).gamePhase || { phase: 'ready' };
         if (phase === 'playing') {
-          backgroundMusic.play().catch(console.log);
+          currentMusic.play().catch(console.log);
           set({ isMusicPlaying: true });
         }
       }
@@ -62,20 +68,36 @@ export const useAudio = create<AudioState>((set, get) => ({
     console.log(`Audio ${newMutedState ? 'muted' : 'unmuted'}`);
   },
 
-  playBackgroundMusic: () => {
-    const { backgroundMusic, isMuted } = get();
-    if (backgroundMusic && !isMuted) {
-      backgroundMusic.currentTime = 0;
-      backgroundMusic.play().catch(console.log);
+  playRoleMusic: (role) => {
+    const { navigatorMusic, guideMusic, isMuted, currentMusic } = get();
+    
+    // Stop current music if playing
+    if (currentMusic) {
+      currentMusic.pause();
+      currentMusic.currentTime = 0;
+    }
+    
+    if (!role || isMuted) {
+      set({ currentMusic: null, isMusicPlaying: false });
+      return;
+    }
+    
+    // Select the appropriate music based on role
+    const newMusic = role === 'navigator' ? navigatorMusic : guideMusic;
+    
+    if (newMusic) {
+      set({ currentMusic: newMusic });
+      newMusic.currentTime = 0;
+      newMusic.play().catch(console.log);
       set({ isMusicPlaying: true });
-      console.log('Background music started');
+      console.log(`${role} music started`);
     }
   },
 
   pauseBackgroundMusic: () => {
-    const { backgroundMusic } = get();
-    if (backgroundMusic) {
-      backgroundMusic.pause();
+    const { currentMusic } = get();
+    if (currentMusic) {
+      currentMusic.pause();
       set({ isMusicPlaying: false });
       console.log('Background music paused');
     }

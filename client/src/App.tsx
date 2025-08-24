@@ -8,22 +8,28 @@ import "@fontsource/inter";
 function App() {
   const isMobile = useIsMobile();
   const { phase } = useGame();
-  const { setBackgroundMusic, setHitSound, setSuccessSound, setPartnerJoinedSound } = useAudio();
+  const { setNavigatorMusic, setGuideMusic, setHitSound, setSuccessSound, setPartnerJoinedSound } = useAudio();
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize audio assets
   useEffect(() => {
     const initializeAudio = async () => {
       try {
-        // Use real audio files from the public directory
-        const bgMusic = new Audio();
-        bgMusic.src = '/sounds/background.mp3';
-        bgMusic.loop = true;
-        bgMusic.volume = 0.2;
+        // Load role-specific music files
+        const navigatorMusic = new Audio();
+        navigatorMusic.src = '/sounds/navigator.mp3';
+        navigatorMusic.loop = true;
+        navigatorMusic.volume = 0.2;
+        
+        const guideMusic = new Audio();
+        guideMusic.src = '/sounds/guide.mp3';
+        guideMusic.loop = true;
+        guideMusic.volume = 0.2;
         
         // Add error handling for mobile audio
         const enableAudioOnInteraction = () => {
-          bgMusic.load(); // Preload the audio
+          navigatorMusic.load(); // Preload the audio
+          guideMusic.load();
           document.removeEventListener('touchstart', enableAudioOnInteraction);
           document.removeEventListener('click', enableAudioOnInteraction);
         };
@@ -32,7 +38,8 @@ function App() {
         document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
         document.addEventListener('click', enableAudioOnInteraction, { once: true });
         
-        setBackgroundMusic(bgMusic);
+        setNavigatorMusic(navigatorMusic);
+        setGuideMusic(guideMusic);
 
         // Load sound effects using actual audio files
         const hitSound = new Audio();
@@ -62,7 +69,7 @@ function App() {
     };
 
     initializeAudio();
-  }, [setBackgroundMusic, setHitSound, setSuccessSound, setPartnerJoinedSound]);
+  }, [setNavigatorMusic, setGuideMusic, setHitSound, setSuccessSound, setPartnerJoinedSound]);
 
   if (!isInitialized) {
     return (

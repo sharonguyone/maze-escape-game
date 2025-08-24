@@ -9,7 +9,7 @@ import GameUI from "./GameUI";
 export default function Game() {
   const { phase, playerRole, gameMode, roomCode, currentLevel, isCreator, partnerJoined, bothPlayersReady, start, restart, nextLevel, switchRoles, setCreatorRole, selectRole, createGame, joinGame, registerPlayerJoin, markPlayerReady } = useGame();
   const { generateSharedMaze, currentLevel: mazeLevel } = useMaze();
-  const { backgroundMusic, isMuted, playBackgroundMusic, pauseBackgroundMusic, playPartnerJoined } = useAudio();
+  const { isMuted, playRoleMusic, pauseBackgroundMusic, playPartnerJoined } = useAudio();
   const [joinCode, setJoinCode] = useState("");
   const [roleSyncInterval, setRoleSyncInterval] = useState<number | null>(null);
   const [partnerJoinCheckInterval, setPartnerJoinCheckInterval] = useState<number | null>(null);
@@ -97,14 +97,14 @@ export default function Game() {
     }
   }, [phase, roomCode, registerPlayerJoin, playPartnerJoined, isCreator, partnerJoined, selectRole]);
 
-  // Handle background music during gameplay
+  // Handle role-specific background music during gameplay
   useEffect(() => {
-    if (phase === "playing" && !isMuted) {
-      playBackgroundMusic();
+    if (phase === "playing" && playerRole && !isMuted) {
+      playRoleMusic(playerRole);
     } else {
       pauseBackgroundMusic();
     }
-  }, [phase, isMuted, playBackgroundMusic, pauseBackgroundMusic]);
+  }, [phase, playerRole, isMuted, playRoleMusic, pauseBackgroundMusic]);
 
   // Role assignment and ready confirmation synchronization during role-select phase
   useEffect(() => {
@@ -187,6 +187,12 @@ export default function Game() {
             if (serverRole && serverRole !== playerRole) {
               console.log(`Role switched: ${playerRole} → ${serverRole}`);
               useGame.setState({ playerRole: serverRole });
+              
+              // Update music for the new role if we're still playing
+              const currentState = useGame.getState();
+              if (currentState.phase === "playing" && !isMuted) {
+                playRoleMusic(serverRole);
+              }
             }
           }
           
@@ -214,7 +220,7 @@ export default function Game() {
       
       return () => clearInterval(interval);
     }
-  }, [phase, roomCode, isCreator, playerRole, start, generateSharedMaze]);
+  }, [phase, roomCode, isCreator, playerRole, start, generateSharedMaze, isMuted, playRoleMusic]);
 
   const handleStartGame = () => {
     selectRole();
