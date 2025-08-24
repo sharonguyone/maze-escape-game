@@ -5,6 +5,7 @@ interface AudioState {
   hitSound: HTMLAudioElement | null;
   successSound: HTMLAudioElement | null;
   isMuted: boolean;
+  isMusicPlaying: boolean;
   
   // Setter functions
   setBackgroundMusic: (music: HTMLAudioElement) => void;
@@ -13,6 +14,8 @@ interface AudioState {
   
   // Control functions
   toggleMute: () => void;
+  playBackgroundMusic: () => void;
+  pauseBackgroundMusic: () => void;
   playHit: () => void;
   playSuccess: () => void;
 }
@@ -22,20 +25,55 @@ export const useAudio = create<AudioState>((set, get) => ({
   hitSound: null,
   successSound: null,
   isMuted: true, // Start muted by default
+  isMusicPlaying: false,
   
   setBackgroundMusic: (music) => set({ backgroundMusic: music }),
   setHitSound: (sound) => set({ hitSound: sound }),
   setSuccessSound: (sound) => set({ successSound: sound }),
   
   toggleMute: () => {
-    const { isMuted } = get();
+    const { isMuted, backgroundMusic } = get();
     const newMutedState = !isMuted;
     
-    // Just update the muted state
+    // Update the muted state
     set({ isMuted: newMutedState });
     
+    // Control background music based on mute state
+    if (backgroundMusic) {
+      if (newMutedState) {
+        backgroundMusic.pause();
+        set({ isMusicPlaying: false });
+      } else {
+        // Only play if we're in a playing phase
+        const { phase } = (window as any).gamePhase || { phase: 'ready' };
+        if (phase === 'playing') {
+          backgroundMusic.play().catch(console.log);
+          set({ isMusicPlaying: true });
+        }
+      }
+    }
+    
     // Log the change
-    console.log(`Sound ${newMutedState ? 'muted' : 'unmuted'}`);
+    console.log(`Audio ${newMutedState ? 'muted' : 'unmuted'}`);
+  },
+
+  playBackgroundMusic: () => {
+    const { backgroundMusic, isMuted } = get();
+    if (backgroundMusic && !isMuted) {
+      backgroundMusic.currentTime = 0;
+      backgroundMusic.play().catch(console.log);
+      set({ isMusicPlaying: true });
+      console.log('Background music started');
+    }
+  },
+
+  pauseBackgroundMusic: () => {
+    const { backgroundMusic } = get();
+    if (backgroundMusic) {
+      backgroundMusic.pause();
+      set({ isMusicPlaying: false });
+      console.log('Background music paused');
+    }
   },
   
   playHit: () => {

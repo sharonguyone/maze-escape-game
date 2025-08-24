@@ -9,7 +9,7 @@ import GameUI from "./GameUI";
 export default function Game() {
   const { phase, playerRole, gameMode, roomCode, currentLevel, isCreator, start, restart, nextLevel, switchRoles, setCreatorRole, selectRole, createGame, joinGame } = useGame();
   const { generateSharedMaze, currentLevel: mazeLevel } = useMaze();
-  const { backgroundMusic, isMuted } = useAudio();
+  const { backgroundMusic, isMuted, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
   const [joinCode, setJoinCode] = useState("");
   const [roleSyncInterval, setRoleSyncInterval] = useState<number | null>(null);
 
@@ -31,16 +31,14 @@ export default function Game() {
     }
   }, [phase, roomCode, generateSharedMaze]);
 
-  // Handle background music
+  // Handle background music during gameplay
   useEffect(() => {
-    if (backgroundMusic && !isMuted) {
-      if (phase === "playing") {
-        backgroundMusic.play().catch(console.log);
-      } else {
-        backgroundMusic.pause();
-      }
+    if (phase === "playing" && !isMuted) {
+      playBackgroundMusic();
+    } else {
+      pauseBackgroundMusic();
     }
-  }, [backgroundMusic, isMuted, phase]);
+  }, [phase, isMuted, playBackgroundMusic, pauseBackgroundMusic]);
 
   // Role and game state synchronization during role-select phase
   useEffect(() => {
